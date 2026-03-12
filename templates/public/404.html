@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="card" style="text-align: center; padding: 50px;">
+    <h1 style="font-size: 72px; color: #dc3545;">404</h1>
+    <h2>الصفحة غير موجودة</h2>
+    <p style="margin: 20px 0; color: #666;">عذراً، الصفحة التي تبحث عنها غير متوفرة أو تم نقلها.</p>
+    <a href="{{ url_for('home') }}" class="btn" style="background: #9a7b2f; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px;">العودة للصفحة الرئيسية</a>
+</div>
+{% endblock %}
