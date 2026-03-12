@@ -1,76 +1,160 @@
 {% extends "base.html" %}
 {% block body %}
-<div class="page-head">
-  <div>
-    <h1>الحجوزات</h1>
-    <p class="muted">فلترة ومراجعة جميع الطلبات من مكان واحد</p>
-  </div>
+<h1>الحجوزات</h1>
+<div class="nav">
+  <a href="{{ url_for('admin_dashboard') }}">الرئيسية</a>
 </div>
 
-<section class="panel">
-  <form method="get" class="filters modern-filters">
-    <input name="search" placeholder="بحث بالاسم أو الكود أو الهاتف" value="{{ request.args.get('search','') }}">
-    <select name="status">
-      <option value="">كل الحالات</option>
-      <option value="pending_proof">pending_proof</option>
-      <option value="pending_review">pending_review</option>
-      <option value="paid">paid</option>
-      <option value="rejected">rejected</option>
-      <option value="used">used</option>
-      <option value="cancelled">cancelled</option>
-    </select>
-    <select name="ticket_type">
-      <option value="">كل الأنواع</option>
-      <option value="full_package">565</option>
-      <option value="breakfast_only">415</option>
-      <option value="contribution">مساهمة</option>
-    </select>
-    <select name="payment_method">
-      <option value="">كل طرق الدفع</option>
-      <option value="instapay">InstaPay</option>
-      <option value="wallet">محفظة</option>
-    </select>
-    <button type="submit">تصفية</button>
-  </form>
-</section>
+<form method="get" class="filters">
+  <input name="search" placeholder="بحث بالاسم أو الكود أو الهاتف" value="{{ request.args.get('search','') }}">
+  <select name="status">
+    <option value="">كل الحالات</option>
+    <option value="pending_proof" {% if request.args.get('status') == 'pending_proof' %}selected{% endif %}>pending_proof</option>
+    <option value="pending_review" {% if request.args.get('status') == 'pending_review' %}selected{% endif %}>pending_review</option>
+    <option value="paid" {% if request.args.get('status') == 'paid' %}selected{% endif %}>paid</option>
+    <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>rejected</option>
+    <option value="used" {% if request.args.get('status') == 'used' %}selected{% endif %}>used</option>
+  </select>
+  <select name="ticket_type">
+    <option value="">كل الأنواع</option>
+    <option value="full_package" {% if request.args.get('ticket_type') == 'full_package' %}selected{% endif %}>حضور كامل (565)</option>
+    <option value="breakfast_only" {% if request.args.get('ticket_type') == 'breakfast_only' %}selected{% endif %}>إفطار فقط (415)</option>
+    <option value="contribution" {% if request.args.get('ticket_type') == 'contribution' %}selected{% endif %}>مساهمة</option>
+  </select>
+  <select name="payment_method">
+    <option value="">كل طرق الدفع</option>
+    <option value="instapay" {% if request.args.get('payment_method') == 'instapay' %}selected{% endif %}>InstaPay</option>
+    <option value="wallet" {% if request.args.get('payment_method') == 'wallet' %}selected{% endif %}>محفظة</option>
+  </select>
+  <button type="submit">تصفية</button>
+  <a href="{{ url_for('admin_bookings') }}" class="action-link">إعادة تعيين</a>
+</form>
 
-<section class="panel">
-  <div class="table-wrap">
-    <table>
+<div class="card">
+  <table>
+    <thead>
       <tr>
-        <th>الكود</th><th>الاسم</th><th>الهاتف</th><th>النوع</th>
-        <th>القيمة</th><th>طريقة الدفع</th><th>الحالة</th><th>إجراءات</th>
+        <th>الكود</th>
+        <th>الاسم</th>
+        <th>الهاتف</th>
+        <th>النوع</th>
+        <th>القيمة</th>
+        <th>طريقة الدفع</th>
+        <th>الحالة</th>
+        <th>الإجراءات</th>
       </tr>
+    </thead>
+    <tbody>
       {% for b in bookings %}
       <tr>
         <td><a href="{{ url_for('admin_booking_details', booking_id=b.id) }}">{{ b.booking_code }}</a></td>
         <td>{{ b.name }}</td>
         <td>{{ b.phone }}</td>
         <td>{{ ticket_label(b.ticket_type) }}</td>
-        <td>{{ b.amount }}</td>
+        <td>{{ b.amount }} جنيه</td>
         <td>{{ payment_label(b.payment_method) }}</td>
-        <td><span class="status-pill">{{ b.status }}</span></td>
+        <td>
+          {% if b.status == 'pending_review' %}
+            <span class="badge warn">في انتظار المراجعة</span>
+          {% elif b.status == 'paid' %}
+            <span class="badge ok">مدفوع</span>
+          {% elif b.status == 'used' %}
+            <span class="badge">تم الدخول</span>
+          {% elif b.status == 'rejected' %}
+            <span class="badge error">مرفوض</span>
+          {% elif b.status == 'pending_proof' %}
+            <span class="badge warn">في انتظار الإثبات</span>
+          {% endif %}
+        </td>
         <td>
           <div class="row-actions">
             {% if b.status == 'pending_review' %}
-              <form method="post" action="{{ url_for('admin_approve_booking', booking_id=b.id) }}">
-                <button type="submit">اعتماد</button>
+              <form method="post" action="{{ url_for('admin_approve_booking', booking_id=b.id) }}" style="display:inline;">
+                <button type="submit" class="btn-small success">✅ قبول</button>
+              </form>
+              <form method="post" action="{{ url_for('admin_reject_booking', booking_id=b.id) }}" style="display:inline;">
+                <button type="submit" class="btn-small danger">❌ رفض</button>
               </form>
             {% endif %}
-            {% if b.status not in ['used','cancelled'] %}
-              <form method="post" action="{{ url_for('admin_cancel_booking', booking_id=b.id) }}" class="confirm-cancel-form">
-                <button class="danger" type="submit">إلغاء الحجز</button>
-              </form>
-            {% endif %}
+            
             {% if b.payment_proof_path %}
-              <a class="action-link" target="_blank" href="{{ url_for('uploaded_payment_proof', filename=basename(b.payment_proof_path)) }}">إيصال الدفع</a>
+              <a class="btn-small" target="_blank" href="{{ url_for('uploaded_payment_proof', filename=basename(b.payment_proof_path)) }}">
+                📷 إثبات الدفع
+              </a>
             {% endif %}
-            <a class="action-link" href="{{ url_for('admin_booking_details', booking_id=b.id) }}">التفاصيل</a>
+            
+            <a class="btn-small" href="{{ url_for('admin_booking_details', booking_id=b.id) }}">
+              🔍 التفاصيل
+            </a>
           </div>
         </td>
       </tr>
       {% endfor %}
-    </table>
-  </div>
-</section>
+    </tbody>
+  </table>
+  
+  {% if bookings|length == 0 %}
+    <p class="text-center">لا توجد حجوزات</p>
+  {% endif %}
+</div>
+
+<style>
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  background: #eee;
+}
+.badge.ok {
+  background: #d4edda;
+  color: #155724;
+}
+.badge.warn {
+  background: #fff3cd;
+  color: #856404;
+}
+.badge.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+.row-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.btn-small {
+  display: inline-block;
+  padding: 5px 10px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  text-decoration: none;
+  color: #333;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-small.success {
+  background: #28a745;
+  color: white;
+  border: none;
+}
+.btn-small.danger {
+  background: #dc3545;
+  color: white;
+  border: none;
+}
+.filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr auto auto;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+.text-center {
+  text-align: center;
+  padding: 20px;
+}
+</style>
 {% endblock %}
