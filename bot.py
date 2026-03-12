@@ -2,13 +2,14 @@ from pathlib import Path
 import telebot
 from telebot import types
 
-from app.config import TELEGRAM_BOT_TOKEN, EVENT_NAME, EVENT_TIME, EVENT_PRE_ARRIVAL_TEXT, EVENT_LOCATION, EVENT_MAP, ACCOUNT_NAME_AR, ACCOUNT_NAME_EN, INSTAPAY_PHONE, WALLET_PHONE, INSTAPAY_LINK
+from app.config import TELEGRAM_BOT_TOKEN, EVENT_NAME, EVENT_TIME, EVENT_PRE_ARRIVAL_TEXT, EVENT_LOCATION, EVENT_MAP, ACCOUNT_NAME_AR, ACCOUNT_NAME_EN, INSTAPAY_PHONE, WALLET_PHONE, INSTAPAY_LINK, ADMIN_CHAT_IDS
 from app.constants import TICKET_FULL, TICKET_BREAKFAST, TICKET_CONTRIBUTION, CONTRIBUTION_AMOUNTS, TICKETS, PAY_INSTAPAY, PAY_WALLET
 from app.db import init_db
 from app.utils import normalize_phone, is_valid_phone
-from app.services import set_session, get_session, clear_session, create_booking, update_payment_proof, get_booking_by_code
+from app.services import set_session, get_session, clear_session, create_booking, update_payment_proof, get_booking_by_code, get_booking_by_id
 from app.storage import payment_proof_path
-from app.notifications import notify_admin_new_proof
+from app.notifications import notify_admin_new_proof, send_ticket_message, send_thank_you_message, send_rejected_message
+from app.services import approve_booking, reject_booking, generate_ticket_for_booking
 
 init_db()
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
@@ -152,8 +153,65 @@ def on_photo(message):
         f.write(file_data)
     update_payment_proof(booking["id"], path)
     booking = get_booking_by_code(booking["booking_code"])
+    
+    # إرسال إشعار للأدمن مع الصورة والأزرار
     notify_admin_new_proof(booking)
+    
     bot.reply_to(message, "تم استلام إثبات الدفع ✅\nسيتم مراجعته قريبًا.", reply_markup=main_reply_keyboard())
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith(('approve_', 'reject_')))
+def handle_admin_decision(call):
+    """معالج قرارات الأدمن من الأزرار"""
+    
+    # التحقق أن المرسل هو أدمن
+    if call.from_user.id not in ADMIN_CHAT_IDS:
+        bot.answer_callback_query(call.id, "غير مصرح لك بهذا الإجراء")
+        return
+    
+    action, booking_id = call.data.split('_')
+    booking_id = int(booking_id)
+    
+    try:
+        if action == 'approve':
+            # قبول الدفع
+            booking = approve_booking(booking_id)
+            
+            if booking['is_attending']:
+                booking = generate_ticket_for_booking(booking)
+                send_ticket_message(booking)
+                response_text = "✅ تم قبول الدفع وإرسال التذكرة للمستخدم"
+            else:
+                send_thank_you_message(booking)
+                response_text = "✅ تم قبول المساهمة وإرسال رسالة الشكر"
+            
+            # تعديل رسالة الأدمن
+            if call.message.caption:
+                bot.edit_message_caption(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    caption=call.message.caption + "\n\n✅ **تم القبول**",
+                    reply_markup=None
+                )
+            
+        elif action == 'reject':
+            # رفض الدفع
+            booking = reject_booking(booking_id)
+            send_rejected_message(booking)
+            
+            # تعديل رسالة الأدمن
+            if call.message.caption:
+                bot.edit_message_caption(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    caption=call.message.caption + "\n\n❌ **تم الرفض**",
+                    reply_markup=None
+                )
+            response_text = "❌ تم رفض الدفع وإشعار المستخدم"
+        
+        bot.answer_callback_query(call.id, response_text)
+        
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"حدث خطأ: {str(e)}")
 
 @bot.message_handler(func=lambda m: True, content_types=["text"])
 def on_text(message):
