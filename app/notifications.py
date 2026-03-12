@@ -6,24 +6,62 @@ from app.utils import ticket_label
 _bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN) if TELEGRAM_BOT_TOKEN else None
 
 def notify_admin_new_proof(booking):
+    """إرسال إشعار للأدمن مع صورة الإيصال وأزرار قبول/رفض"""
     if not _bot:
         return
-    text = (
-        "طلب دفع جديد يحتاج مراجعة\n\n"
-        f"الاسم: {booking['name']}\n"
-        f"نوع التذكرة: {ticket_label(booking['ticket_type'])}\n"
-        f"المبلغ: {booking['amount']} جنيه\n"
-        f"طريقة الدفع: {booking['payment_method']}\n"
-        f"الكود: {booking['booking_code']}\n\n"
+    
+    # نص الرسالة
+    caption = (
+        f"📌 طلب دفع جديد\n\n"
+        f"👤 الاسم: {booking['name']}\n"
+        f"📞 الهاتف: {booking['phone']}\n"
+        f"🎫 نوع التذكرة: {ticket_label(booking['ticket_type'])}\n"
+        f"💰 المبلغ: {booking['amount']} جنيه\n"
+        f"💳 طريقة الدفع: {booking['payment_method']}\n"
+        f"🆔 الكود: {booking['booking_code']}\n\n"
         f"رابط المراجعة: {BASE_URL}/admin/bookings/{booking['id']}"
     )
-    for cid in ADMIN_CHAT_IDS:
+    
+    # أزرار القبول والرفض
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+    btn_approve = telebot.types.InlineKeyboardButton(
+        "✅ قبول", 
+        callback_data=f"approve_{booking['id']}"
+    )
+    btn_reject = telebot.types.InlineKeyboardButton(
+        "❌ رفض", 
+        callback_data=f"reject_{booking['id']}"
+    )
+    btn_review = telebot.types.InlineKeyboardButton(
+        "🔍 مراجعة", 
+        url=f"{BASE_URL}/admin/bookings/{booking['id']}"
+    )
+    markup.add(btn_approve, btn_reject, btn_review)
+    
+    # إرسال الصورة مع الأزرار لكل أدمن
+    for admin_chat_id in ADMIN_CHAT_IDS:
         try:
-            _bot.send_message(cid, text)
-        except Exception:
-            pass
+            # لو فيه صورة إيصال، أرسلها
+            if booking.get('payment_proof_path') and os.path.exists(booking['payment_proof_path']):
+                with open(booking['payment_proof_path'], 'rb') as photo:
+                    _bot.send_photo(
+                        admin_chat_id,
+                        photo,
+                        caption=caption,
+                        reply_markup=markup
+                    )
+            else:
+                # لو مفيش صورة، أرسل رسالة عادية
+                _bot.send_message(
+                    admin_chat_id,
+                    caption + "\n\n⚠️ لا توجد صورة إيصال",
+                    reply_markup=markup
+                )
+        except Exception as e:
+            print(f"Error sending to admin {admin_chat_id}: {e}")
 
 def send_rejected_message(booking):
+    """إرسال رسالة رفض للمستخدم"""
     if _bot and booking.get("telegram_chat_id"):
         try:
             _bot.send_message(
@@ -34,6 +72,7 @@ def send_rejected_message(booking):
             pass
 
 def send_ticket_message(booking):
+    """إرسال التذكرة للمستخدم بعد القبول"""
     if not _bot or not booking.get("telegram_chat_id"):
         return
     try:
@@ -59,6 +98,7 @@ def send_ticket_message(booking):
         print(f"Error sending ticket: {e}")
 
 def send_thank_you_message(booking):
+    """إرسال رسالة شكر للمساهم"""
     if _bot and booking.get("telegram_chat_id"):
         try:
             _bot.send_message(
@@ -69,6 +109,7 @@ def send_thank_you_message(booking):
             pass
 
 def send_broadcast(chat_ids, message):
+    """إرسال رسالة جماعية لمجموعة من المستخدمين"""
     count = 0
     if not _bot:
         return count
