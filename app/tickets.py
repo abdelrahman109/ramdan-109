@@ -40,8 +40,6 @@ def create_ticket_image(booking, qr_image_path, out_path):
     y += 70
     draw.text((120, y), f"كود التذكرة: {booking['booking_code']}", fill="black", font=body_font)
     y += 70
-    draw.text((120, y), f"قيمة التذكرة: {booking['amount']} جنيه", fill="black", font=body_font)
-    y += 70
     draw.text((120, y), f"موعد الحفل: {EVENT_TIME}", fill="black", font=body_font)
     y += 70
     draw.text((120, y), f"المكان: {EVENT_LOCATION}", fill="black", font=body_font)
