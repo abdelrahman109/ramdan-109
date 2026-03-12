@@ -42,7 +42,7 @@ def notify_admin_new_proof(booking):
     for admin_chat_id in ADMIN_CHAT_IDS:
         try:
             # لو فيه صورة إيصال، أرسلها
-            if booking.get('payment_proof_path') and os.path.exists(booking['payment_proof_path']):
+            if booking['payment_proof_path'] and os.path.exists(booking['payment_proof_path']):
                 with open(booking['payment_proof_path'], 'rb') as photo:
                     _bot.send_photo(
                         admin_chat_id,
@@ -62,18 +62,18 @@ def notify_admin_new_proof(booking):
 
 def send_rejected_message(booking):
     """إرسال رسالة رفض للمستخدم"""
-    if _bot and booking.get("telegram_chat_id"):
+    if _bot and booking['telegram_chat_id']:
         try:
             _bot.send_message(
-                booking["telegram_chat_id"], 
+                booking['telegram_chat_id'], 
                 "❌ لم يتم اعتماد صورة السداد الحالية. برجاء إعادة رفع صورة أوضح أو التواصل مع الإدارة."
             )
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error sending rejected: {e}")
 
 def send_ticket_message(booking):
     """إرسال التذكرة للمستخدم بعد القبول"""
-    if not _bot or not booking.get("telegram_chat_id"):
+    if not _bot or not booking['telegram_chat_id']:
         return
     try:
         msg = (
@@ -89,24 +89,24 @@ def send_ticket_message(booking):
             "📲 يرجى الاحتفاظ بالـ QR Code لإبرازه عند الدخول.\n"
             "⚠️ التذكرة صالحة لدخول مرة واحدة فقط."
         )
-        _bot.send_message(booking["telegram_chat_id"], msg)
+        _bot.send_message(booking['telegram_chat_id'], msg)
         
-        if booking.get("ticket_image_path") and os.path.exists(booking["ticket_image_path"]):
-            with open(booking["ticket_image_path"], "rb") as f:
-                _bot.send_photo(booking["telegram_chat_id"], f)
+        if booking['ticket_image_path'] and os.path.exists(booking['ticket_image_path']):
+            with open(booking['ticket_image_path'], "rb") as f:
+                _bot.send_photo(booking['telegram_chat_id'], f)
     except Exception as e:
         print(f"Error sending ticket: {e}")
 
 def send_thank_you_message(booking):
     """إرسال رسالة شكر للمساهم"""
-    if _bot and booking.get("telegram_chat_id"):
+    if _bot and booking['telegram_chat_id']:
         try:
             _bot.send_message(
-                booking["telegram_chat_id"],
+                booking['telegram_chat_id'],
                 f"❤️ تم تأكيد المساهمة بنجاح\n\n{EVENT_NAME}\n\n💰 قيمة المساهمة\n{booking['amount']} جنيه\n\nنشكر دعمكم الكريم ومساهمتكم في هذا الحدث الإنساني.\nونسأل الله أن يجعلها في ميزان حسناتكم."
             )
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error sending thank you: {e}")
 
 def send_broadcast(chat_ids, message):
     """إرسال رسالة جماعية لمجموعة من المستخدمين"""
