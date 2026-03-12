@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>لوحة الإدارة</h1>
+<div class="nav">
+  <a href="{{ url_for('admin_bookings') }}">الحجوزات</a>
+  <a href="{{ url_for('admin_broadcast') }}">الرسائل الجماعية</a>
+  <a href="{{ url_for('export_bookings') }}">تقرير الحجوزات CSV</a>
+  <a href="{{ url_for('export_checkins') }}">تقرير الدخول CSV</a>
+  <a href="{{ url_for('admin_logout') }}">خروج</a>
+</div>
+<div class="grid">
+  <div class="stat"><strong>إجمالي الحجوزات</strong><span>{{ stats.total }}</span></div>
+  <div class="stat"><strong>المدفوع</strong><span>{{ stats.paid }}</span></div>
+  <div class="stat"><strong>المعلق</strong><span>{{ stats.pending }}</span></div>
+  <div class="stat"><strong>الحضور</strong><span>{{ stats.attendees }}</span></div>
+  <div class="stat"><strong>المساهمون</strong><span>{{ stats.contributors }}</span></div>
+  <div class="stat"><strong>استخدمت</strong><span>{{ stats.used }}</span></div>
+  <div class="stat"><strong>المتبقي</strong><span>{{ stats.remaining }}</span></div>
+  <div class="stat"><strong>الإيرادات</strong><span>{{ stats.revenue }} جنيه</span></div>
+  <div class="stat"><strong>InstaPay</strong><span>{{ stats.instapay_count }}</span></div>
+  <div class="stat"><strong>محفظة</strong><span>{{ stats.wallet_count }}</span></div>
+</div>
+{% endblock %}

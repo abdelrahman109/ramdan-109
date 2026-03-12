@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="card">
+  {% if status == "invalid" %}
+    <h2>تذكرة غير صالحة</h2>
+  {% else %}
+    <h2>{{ booking.name }}</h2>
+    <p><strong>نوع التذكرة:</strong> {{ ticket_label(booking.ticket_type) }}</p>
+    <p><strong>الكود:</strong> {{ booking.booking_code }}</p>
+    <p><strong>الحالة:</strong> {{ booking.status }}</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="card">
+  <h1>QR Scanner</h1>
+  <p>أدخل بيانات البوابة ثم امسح QR أو الصق token يدويًا.</p>
+  <div class="grid2">
+    <input id="gate_name" placeholder="اسم البوابة">
+    <input id="checked_in_by" placeholder="اسم الموظف">
+  </div>
+  <textarea id="qr_token" rows="3" placeholder="ضع QR token هنا أو استخدم ماسح كاميرا خارجي"></textarea>
+  <div class="actions">
+    <button onclick="validateTicket()">تحقق فقط</button>
+    <button onclick="checkinTicket()">تسجيل دخول</button>
+  </div>
+  <div id="result" class="result"></div>
+</div>
+<script src="{{ url_for('static', filename='js/scanner.js') }}"></script>
+{% endblock %}

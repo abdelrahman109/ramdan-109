@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="card">
+  <h2>مسح QR للحضور</h2>
+  <p>اكتب كلمة مرور الأدمن ثم افتح الكاميرا.</p>
+  <input id="password" type="password" placeholder="كلمة المرور">
+  <div id="reader"></div>
+  <pre id="result"></pre>
+</div>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+const result = document.getElementById('result');
+function extractSecret(text){
+  try {
+    const url = new URL(text);
+    return url.pathname.split('/').pop();
+  } catch(e) {
+    return text.trim();
+  }
+}
+function onScanSuccess(decodedText) {
+  const secret = extractSecret(decodedText);
+  fetch('/api/checkin', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({secret, password: document.getElementById('password').value})
+  }).then(r => r.json().then(data => ({status:r.status, data}))).then(({status, data}) => {
+    result.textContent = JSON.stringify(data, null, 2);
+  }).catch(err => result.textContent = String(err));
+}
+new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }).render(onScanSuccess);
+</script>
+{% endblock %}

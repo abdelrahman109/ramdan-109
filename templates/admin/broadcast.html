@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="nav">
+  <a href="{{ url_for('admin_dashboard') }}">الرئيسية</a>
+</div>
+<div class="card">
+  <h2>رسالة جماعية</h2>
+  <form method="post">
+    <select name="target_group">
+      <option value="attendees">الحضور</option>
+      <option value="contributors">المساهمون</option>
+      <option value="all_paid">المدفوعون</option>
+    </select>
+    <textarea name="message" rows="10" placeholder="اكتب الرسالة" required></textarea>
+    <button type="submit">إرسال</button>
+  </form>
+</div>
+{% endblock %}

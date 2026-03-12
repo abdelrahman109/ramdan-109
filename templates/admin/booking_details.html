@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="nav">
+  <a href="{{ url_for('admin_bookings') }}">رجوع للحجوزات</a>
+</div>
+<div class="card">
+  <h2>{{ booking.name }}</h2>
+  <p><strong>الكود:</strong> {{ booking.booking_code }}</p>
+  <p><strong>الهاتف:</strong> {{ booking.phone }}</p>
+  <p><strong>نوع التذكرة:</strong> {{ ticket_label(booking.ticket_type) }}</p>
+  <p><strong>القيمة:</strong> {{ booking.amount }} جنيه</p>
+  <p><strong>طريقة الدفع:</strong> {{ payment_label(booking.payment_method) }}</p>
+  <p><strong>الحالة:</strong> {{ booking.status }}</p>
+  <p><strong>حضور:</strong> {{ "نعم" if booking.is_attending else "لا" }}</p>
+  {% if booking.payment_proof_path %}
+    <p><strong>إثبات الدفع:</strong></p>
+    <img class="proof" src="{{ url_for('uploaded_payment_proof', filename=basename(booking.payment_proof_path)) }}">
+  {% endif %}
+  <div class="actions">
+    {% if booking.status == 'pending_review' %}
+      <form method="post" action="{{ url_for('admin_approve_booking', booking_id=booking.id) }}"><button type="submit">اعتماد الدفع</button></form>
+      <form method="post" action="{{ url_for('admin_reject_booking', booking_id=booking.id) }}"><button class="danger" type="submit">رفض الدفع</button></form>
+    {% endif %}
+    {% if booking.is_attending and booking.status in ['paid','used'] %}
+      <form method="post" action="{{ url_for('admin_resend_ticket', booking_id=booking.id) }}"><button type="submit">إعادة إرسال التذكرة</button></form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

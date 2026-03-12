@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="card">
+  <h1>{{ event_name }}</h1>
+  <p>{{ event_date }} - {{ event_location }}</p>
+  <span class="badge ok">مدفوع: {{ sold }}</span>
+  <span class="badge warn">معلق: {{ pending }}</span>
+  <span class="badge">دخلوا: {{ used }}</span>
+</div>
+<div class="card">
+  <p>ده السيرفر المساعد للبوت. الحجز والدفع الأساسيين بيتموا من خلال Telegram Bot.</p>
+  <p><a href="/scan">صفحة المسح عند الباب</a> | <a href="/admin">لوحة الإدارة</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="card">
+  {% if status == 'valid' %}
+    <h2>✅ التذكرة صالحة</h2>
+    <p>اسم الحاضر: {{ ticket.full_name }}</p>
+    <p>اسم القائم بالحجز: {{ ticket.booker_name or ticket.full_name }}</p>
+    <p>{{ ticket.ticket_code }}</p>
+  {% elif status == 'used' %}
+    <h2>❌ التذكرة مستخدمة</h2>
+    <p>اسم الحاضر: {{ ticket.full_name }}</p>
+    <p>اسم القائم بالحجز: {{ ticket.booker_name or ticket.full_name }}</p>
+    <p>{{ ticket.ticket_code }}</p>
+  {% elif status == 'unpaid' %}
+    <h2>⚠️ الدفع غير مؤكد</h2>
+    <p>اسم الحاضر: {{ ticket.full_name }}</p>
+    <p>اسم القائم بالحجز: {{ ticket.booker_name or ticket.full_name }}</p>
+    <p>{{ ticket.ticket_code }}</p>
+  {% else %}
+    <h2>🚫 التذكرة غير موجودة</h2>
+  {% endif %}
+</div>
+{% endblock %}

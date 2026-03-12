@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="card">
+  <h2>لوحة الإدارة</h2>
+  <p>
+    <span class="badge ok">مدفوع: {{ sold }}</span>
+    <span class="badge warn">معلق: {{ pending }}</span>
+    <span class="badge">حضور: {{ used }}</span>
+  </p>
+  <p class="muted">عند الضغط على تأكيد الدفع، النظام هيبعت الـ QR تلقائيًا للمستخدم على تيليجرام.</p>
+</div>
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>الكود</th><th>اسم الحاضر</th><th>اسم القائم بالحجز</th><th>الموبايل</th><th>النوع</th><th>الدفع</th><th>الحالة</th><th>المرجع</th><th>الإثبات</th><th>إجراء</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tickets %}
+      <tr>
+        <td>{{ t.ticket_code }}</td>
+        <td>{{ t.full_name }}</td>
+        <td>{{ t.booker_name or t.full_name }}</td>
+        <td>{{ t.phone or '' }}</td>
+        <td>{{ t.ticket_type }}</td>
+        <td>{{ t.payment_method }}</td>
+        <td>{{ t.payment_status }}{% if t.is_used %} / used{% endif %}</td>
+        <td>{{ t.instapay_ref or '-' }}</td>
+        <td>
+          {% if t.payment_proof_path %}
+            <a class="btn" target="_blank" href="/proofs/{{ Path(t.payment_proof_path).name }}?password={{ password }}">فتح الصورة</a>
+          {% else %}
+            <span class="muted">لا يوجد</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if t.payment_status != 'paid' %}
+          <form method="post" action="/admin/mark-paid/{{ t.ticket_code }}">
+            <input type="hidden" name="password" value="{{ password }}">
+            <button class="btn" type="submit">تأكيد الدفع</button>
+          </form>
+          {% else %}
+            <span class="muted">تم</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

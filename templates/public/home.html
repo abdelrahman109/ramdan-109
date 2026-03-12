@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="card">
+  <h1>{{ EVENT_NAME }}</h1>
+  <p><strong>🕠 الموعد:</strong> {{ EVENT_TIME }}</p>
+  <p><strong>📍 المكان:</strong> {{ EVENT_LOCATION }}</p>
+  <p><a href="{{ EVENT_MAP }}" target="_blank">فتح موقع الحفل</a></p>
+  <p><strong>التذاكر المتبقية:</strong> {{ remaining_tickets }}</p>
+  <p>الحجز من خلال Telegram Bot.</p>
+</div>
+{% endblock %}
