@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="page-head">
+  <div>
+    <h1>لوحة الإدارة</h1>
+    <p class="muted">نظرة شاملة على الحجوزات والحضور والإيرادات</p>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="metric-card"><span>إجمالي الحجوزات</span><strong>{{ stats.total }}</strong></div>
+  <div class="metric-card"><span>المدفوع</span><strong>{{ stats.paid }}</strong></div>
+  <div class="metric-card"><span>المعلق</span><strong>{{ stats.pending }}</strong></div>
+  <div class="metric-card"><span>الحضور</span><strong>{{ stats.attendees }}</strong></div>
+  <div class="metric-card"><span>المساهمون</span><strong>{{ stats.contributors }}</strong></div>
+  <div class="metric-card"><span>استخدمت</span><strong>{{ stats.used }}</strong></div>
+  <div class="metric-card"><span>المتبقي</span><strong>{{ stats.remaining }}</strong></div>
+  <div class="metric-card highlight"><span>الإيرادات</span><strong>{{ stats.revenue }} جنيه</strong></div>
+</div>
+
+<div class="grid-two">
+  <section class="panel">
+    <div class="panel-head">
+      <h3>ملخص طرق الدفع</h3>
+    </div>
+    <div class="stats-grid compact">
+      <div class="metric-card"><span>إجمالي InstaPay</span><strong>{{ stats.instapay_total }} جنيه</strong></div>
+      <div class="metric-card"><span>إجمالي المحفظة</span><strong>{{ stats.wallet_total }} جنيه</strong></div>
+      <div class="metric-card"><span>InstaPay (الحضور)</span><strong>{{ stats.instapay_attendees }} جنيه</strong></div>
+      <div class="metric-card"><span>محفظة (الحضور)</span><strong>{{ stats.wallet_attendees }} جنيه</strong></div>
+      <div class="metric-card"><span>InstaPay (مساهمات)</span><strong>{{ stats.instapay_contributions }} جنيه</strong></div>
+      <div class="metric-card"><span>محفظة (مساهمات)</span><strong>{{ stats.wallet_contributions }} جنيه</strong></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h3>آخر الحجوزات</h3>
+      <a class="action-link" href="{{ url_for('admin_bookings') }}">عرض الكل</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <tr><th>الكود</th><th>الاسم</th><th>النوع</th><th>الدفع</th><th>الحالة</th></tr>
+        {% for b in stats.latest %}
+        <tr>
+          <td><a href="{{ url_for('admin_booking_details', booking_id=b.id) }}">{{ b.booking_code }}</a></td>
+          <td>{{ b.name }}</td>
+          <td>{{ ticket_label(b.ticket_type) }}</td>
+          <td>{{ payment_label(b.payment_method) }}</td>
+          <td><span class="status-pill">{{ b.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

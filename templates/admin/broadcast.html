@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="page-head">
+  <div>
+    <h1>رسالة جماعية</h1>
+    <p class="muted">إرسال تحديث موحد للحضور أو المساهمين</p>
+  </div>
+</div>
+
+<section class="panel">
+  <form method="post">
+    <select name="target_group">
+      <option value="attendees">الحضور</option>
+      <option value="contributors">المساهمون</option>
+      <option value="all_paid">المدفوعون</option>
+    </select>
+    <textarea name="message" rows="10" placeholder="اكتب الرسالة" required></textarea>
+    <button type="submit">إرسال</button>
+  </form>
+</section>
+{% endblock %}
