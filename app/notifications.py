@@ -8,20 +8,56 @@ _bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN) if TELEGRAM_BOT_TOKEN else None
 def notify_admin_new_proof(booking):
     if not _bot:
         return
+
     text = (
-        "طلب دفع جديد يحتاج مراجعة\n\n"
-        f"الاسم: {booking['name']}\n"
-        f"نوع التذكرة: {ticket_label(booking['ticket_type'])}\n"
-        f"المبلغ: {booking['amount']} جنيه\n"
-        f"طريقة الدفع: {booking['payment_method']}\n"
-        f"الكود: {booking['booking_code']}"
+        "💳 تم رفع صورة دفع جديدة\n\n"
+        f"👤 الاسم: {booking['name']}\n"
+        f"📱 الهاتف: {booking['phone']}\n"
+        f"🎫 نوع التذكرة: {ticket_label(booking['ticket_type'])}\n"
+        f"💰 المبلغ: {booking['amount']} جنيه\n"
+        f"💳 طريقة الدفع: {booking['payment_method']}\n"
+        f"🆔 كود الحجز: {booking['booking_code']}\n\n"
+        "اختر الإجراء المناسب:"
     )
+
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        types.InlineKeyboardButton(
+            "✅ اعتماد الدفع",
+            callback_data=f"admin_approve:{booking['id']}"
+        ),
+        types.InlineKeyboardButton(
+            "❌ رفض الدفع",
+            callback_data=f"admin_reject:{booking['id']}"
+        ),
+    )
+    keyboard.add(
+        types.InlineKeyboardButton(
+            "فتح الحجز في الداشبورد",
+            url=f"{BASE_URL}/admin/bookings/{booking['id']}"
+        )
+    )
+
     for cid in ADMIN_CHAT_IDS:
         try:
-            _bot.send_message(cid, text)
-        except Exception:
-            pass
+            proof_path = booking["payment_proof_path"]
 
+            if proof_path and os.path.exists(proof_path):
+                with open(proof_path, "rb") as photo:
+                    _bot.send_photo(
+                        cid,
+                        photo,
+                        caption=text,
+                        reply_markup=keyboard
+                    )
+            else:
+                _bot.send_message(
+                    cid,
+                    text,
+                    reply_markup=keyboard
+                )
+        except Exception as e:
+            print(f"notify_admin_new_proof error: {e}")
 def send_rejected_message(booking):
     if _bot and booking["telegram_chat_id"]:
         _bot.send_message(booking["telegram_chat_id"], "❌ لم يتم اعتماد صورة السداد الحالية. برجاء إعادة رفع صورة أوضح أو التواصل مع الإدارة.")
