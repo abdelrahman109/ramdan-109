@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ EVENT_NAME }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script src="{{ url_for('static', filename='js/admin_confirm.js') }}"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">109</div>
+        <div>
+          <div class="brand-title">Dashboard</div>
+          <div class="brand-subtitle">{{ EVENT_NAME }}</div>
+        </div>
+      </div>
+      <nav class="side-nav">
+        <a href="{{ url_for('admin_dashboard') }}">الرئيسية</a>
+        <a href="{{ url_for('admin_bookings') }}">الحجوزات</a>
+        <a href="{{ url_for('admin_broadcast') }}">الرسائل الجماعية</a>
+        <a href="{{ url_for('export_bookings') }}">تقرير الحجوزات</a>
+        <a href="{{ url_for('export_checkins') }}">تقرير الدخول</a>
+        <a href="{{ url_for('scanner_page') }}">Scanner</a>
+        <a href="{{ url_for('admin_logout') }}">خروج</a>
+      </nav>
+    </aside>
+    <main class="main">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="flash-wrap">
+            {% for msg in messages %}
+              <div class="flash">{{ msg }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block body %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>
