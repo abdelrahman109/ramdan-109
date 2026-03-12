@@ -72,10 +72,11 @@ def send_rejected_message(booking):
             print(f"Error sending rejected: {e}")
 
 def send_ticket_message(booking):
-    """إرسال التذكرة للمستخدم بعد القبول"""
+    """إرسال التذكرة للمستخدم بعد القبول (بدون لوجو)"""
     if not _bot or not booking['telegram_chat_id']:
         return
     try:
+        # رسالة نصية فقط - من غير لوجو
         msg = (
             "🎉 تم تأكيد الدفع بنجاح\n\n"
             f"🎟 {EVENT_NAME} 🇪🇬\n\n"
@@ -89,11 +90,15 @@ def send_ticket_message(booking):
             "📲 يرجى الاحتفاظ بالـ QR Code لإبرازه عند الدخول.\n"
             "⚠️ التذكرة صالحة لدخول مرة واحدة فقط."
         )
+        
+        # إرسال الرسالة النصية أولاً
         _bot.send_message(booking['telegram_chat_id'], msg)
         
+        # ثم إرسال صورة التذكرة (بدون لوجو إضافي)
         if booking['ticket_image_path'] and os.path.exists(booking['ticket_image_path']):
             with open(booking['ticket_image_path'], "rb") as f:
                 _bot.send_photo(booking['telegram_chat_id'], f)
+        
     except Exception as e:
         print(f"Error sending ticket: {e}")
 
