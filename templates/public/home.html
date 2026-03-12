@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="page-head">
+  <div>
+    <h1>{{ EVENT_NAME }}</h1>
+    <p class="muted">النظام الرسمي للحجز وإدارة التذاكر</p>
+  </div>
+</div>
+
+<div class="grid-two">
+  <section class="panel">
+    <h3>معلومات الحفل</h3>
+    <div class="details-list">
+      <div><strong>🕠 الموعد:</strong> {{ EVENT_TIME }}</div>
+      <div><strong>📍 المكان:</strong> {{ EVENT_LOCATION }}</div>
+      <div><strong>🎟 المتبقي:</strong> {{ remaining_tickets }}</div>
+    </div>
+    <div class="actions">
+      <a class="action-link" href="{{ EVENT_MAP }}" target="_blank">فتح موقع الحفل</a>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>الحجز</h3>
+    <p class="muted">الحجز يتم من خلال Telegram Bot. بعد الدفع ورفع الإيصال يتم اعتماد الحجز وإرسال التذكرة.</p>
+  </section>
+</div>
+{% endblock %}
