@@ -89,15 +89,8 @@ def admin_approve_booking(booking_id):
     if not is_admin():
         return redirect(url_for("admin_login"))
     
-    # قبول الحجز
     booking = approve_booking(booking_id)
     
-    # التحقق من وجود chat_id
-    if not booking or 'telegram_chat_id' not in booking.keys() or not booking['telegram_chat_id']:
-        flash("تحذير: لا يوجد معرف محادثة للمستخدم")
-        return redirect(request.referrer or url_for("admin_bookings"))
-    
-    # إنشاء التذكرة وإرسالها
     if booking["is_attending"]:
         booking = generate_ticket_for_booking(booking)
         send_ticket_message(booking)
@@ -113,15 +106,9 @@ def admin_reject_booking(booking_id):
     if not is_admin():
         return redirect(url_for("admin_login"))
     
-    # رفض الحجز
     booking = reject_booking(booking_id)
-    
-    # إرسال رسالة الرفض
-    if booking and booking['telegram_chat_id']:
-        send_rejected_message(booking)
-        flash("❌ تم رفض الدفع وإرسال إشعار للمستخدم")
-    else:
-        flash("❌ تم رفض الدفع (لكن لا يوجد معرف محادثة للمستخدم)")
+    send_rejected_message(booking)
+    flash("❌ تم رفض الدفع وإشعار المستخدم")
     
     return redirect(request.referrer or url_for("admin_bookings"))
 
@@ -132,11 +119,8 @@ def admin_resend_ticket(booking_id):
     
     booking = get_booking_by_id(booking_id)
     if booking and booking["is_attending"] and booking["status"] in ("paid", "used"):
-        if booking['telegram_chat_id']:
-            send_ticket_message(booking)
-            flash("✅ تمت إعادة إرسال التذكرة")
-        else:
-            flash("⚠️ لا يمكن إعادة الإرسال: لا يوجد معرف محادثة")
+        send_ticket_message(booking)
+        flash("✅ تمت إعادة إرسال التذكرة")
     else:
         flash("⚠️ لا يمكن إعادة إرسال هذه التذكرة")
     
