@@ -58,9 +58,10 @@ def create_ticket_image(booking, qr_image_path, out_path):
     # تحديد الأحجام - كلها Arial Bold
     title_font1 = _font(60)      # Arial Bold 60 للسطر الأول
     title_font2 = _font(60)      # Arial Bold 60 للسطر الثاني
-    name_font = _font(36)        # Arial Bold 36 للاسم
+    name_font = _font(40)        # Arial Bold 40 للاسم
     body_font = _font(32)        # Arial Bold 32 للنصوص العادية
     small_font = _font(24)       # Arial Bold 24 للنصوص الصغيرة
+    detail_font = _font(30)      # Arial Bold 30 للتفاصيل
     
     y = 320  # بداية الكتابة بعد اللوجو
     
@@ -76,48 +77,40 @@ def create_ticket_image(booking, qr_image_path, out_path):
     draw.text((600, y), f"الاسم: {booking['name']}", fill="black", font=name_font, anchor="mt")
     y += 70
     
-    # نوع التذكرة
-    draw.text((600, y), f"نوع التذكرة: {ticket_label(booking['ticket_type'])}", fill="black", font=body_font, anchor="mt")
-    y += 60
-    
-    # كود التذكرة
-    draw.text((600, y), f"كود التذكرة: {booking['booking_code']}", fill="black", font=body_font, anchor="mt")
+    # نوع التذكرة وكود التذكرة - في سطر واحد
+    ticket_info = f"{ticket_label(booking['ticket_type'])}  |  كود: {booking['booking_code']}"
+    draw.text((600, y), ticket_info, fill="black", font=body_font, anchor="mt")
     y += 60
     
     # تفاصيل الحضور (للتذاكر العادية فقط)
     if booking['ticket_type'] != TICKET_CONTRIBUTION:
-        # استخدام الأقواس المربعة بدل .get
-        base_amount = 150
+        # استخراج البيانات
         extra_people = booking['extra_people'] if 'extra_people' in booking.keys() else 0
-        extra_cost = extra_people * PRICE_EXTRA_MEAL
         pin_medal = booking['pin_medal'] if 'pin_medal' in booking.keys() else 0
-        pin_cost = PRICE_PIN_MEDAL if pin_medal else 0
         
-        draw.text((600, y), f"القيمة الأساسية: {base_amount} جنيه", fill="black", font=body_font, anchor="mt")
+        # تفاصيل التذكرة في سطرين منظمين
+        details_line1 = f"قيمة أساسية: 150 جنيه  |  أفراد إضافيين: {extra_people}"
+        draw.text((600, y), details_line1, fill="black", font=detail_font, anchor="mt")
         y += 50
-        if extra_people > 0:
-            draw.text((600, y), f"أفراد إضافيين: {extra_people} × {PRICE_EXTRA_MEAL} = {extra_cost} جنيه", fill="black", font=body_font, anchor="mt")
-            y += 50
-        if pin_medal:
-            draw.text((600, y), f"بروش + ميدالية: {PRICE_PIN_MEDAL} جنيه", fill="black", font=body_font, anchor="mt")
-            y += 50
+        
+        details_line2 = f"بروش + ميدالية: {'نعم' if pin_medal else 'لا'}  |  الإجمالي: {booking['amount']} جنيه"
+        draw.text((600, y), details_line2, fill="#9a7b2f", font=detail_font, anchor="mt")
+        y += 60
+    else:
+        # للمساهمات فقط
+        draw.text((600, y), f"قيمة المساهمة: {booking['amount']} جنيه", fill="#9a7b2f", font=body_font, anchor="mt")
+        y += 60
     
-    # إجمالي المبلغ
-    draw.text((600, y), f"الإجمالي: {booking['amount']} جنيه", fill="#9a7b2f", font=name_font, anchor="mt")
-    y += 70
-    
-    # موعد الحفل
+    # موعد الحفل ومكانه - في سطرين
     draw.text((600, y), f"موعد الحفل: {EVENT_TIME}", fill="black", font=body_font, anchor="mt")
-    y += 60
-    
-    # مكان الحفل
+    y += 50
     draw.text((600, y), f"المكان: {EVENT_LOCATION}", fill="black", font=body_font, anchor="mt")
-    y += 60
+    y += 70
     
     # QR Code
     if os.path.exists(qr_image_path):
         qr = Image.open(qr_image_path).convert("RGB").resize((400, 400))
-        img.paste(qr, ((1200 - 400) // 2, 1000))
+        img.paste(qr, ((1200 - 400) // 2, 1020))
     
     # النص السفلي
     draw.text((600, 1480), "التذكرة صالحة لدخول مرة واحدة فقط", fill="#8a0000", font=body_font, anchor="mt")
