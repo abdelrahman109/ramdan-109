@@ -30,36 +30,80 @@
   </div>
 </div>
 
-<!-- =============== إحصائيات طرق الدفع =============== -->
-<h2 style="color: #764ba2; margin: 30px 0 20px;">💳 إحصائيات طرق الدفع</h2>
+<!-- =============== إحصائيات الضيوف والبروش =============== -->
+<h2 style="color: #764ba2; margin: 30px 0 20px;">👥 إحصائيات الضيوف والبروش</h2>
+
+<div class="guests-grid">
+  <!-- إجمالي الضيوف -->
+  <div class="guest-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="guest-title">إجمالي الضيوف</div>
+    <div class="guest-main">{{ stats.total_guests if stats.total_guests else 0 }}</div>
+    <div class="guest-details">
+      <div>أساسي: {{ stats.attendees }}</div>
+      <div>إضافي: {{ stats.total_extra_people if stats.total_extra_people else 0 }}</div>
+    </div>
+  </div>
+  
+  <!-- توزيع الضيوف -->
+  <div class="guest-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+    <div class="guest-title">توزيع الضيوف</div>
+    <div class="guest-stats">
+      <div class="guest-stat">
+        <div class="stat-value">{{ stats.attendees_with_extra if stats.attendees_with_extra else 0 }}</div>
+        <div class="stat-label">مع إضافيين</div>
+      </div>
+      <div class="guest-stat">
+        <div class="stat-value">{{ stats.attendees_without_extra if stats.attendees_without_extra else 0 }}</div>
+        <div class="stat-label">بدون إضافيين</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- إحصائيات البروش والميدالية -->
+  <div class="guest-card" style="background: linear-gradient(135deg, #9a7b2f 0%, #d9b96d 100%);">
+    <div class="guest-title">بروش + ميدالية</div>
+    <div class="guest-stats">
+      <div class="guest-stat">
+        <div class="stat-value">{{ stats.pin_medal_stats.delivered if stats.pin_medal_stats else 0 }}</div>
+        <div class="stat-label">تم التسليم</div>
+      </div>
+      <div class="guest-stat">
+        <div class="stat-value">{{ stats.pin_medal_stats.remaining if stats.pin_medal_stats else 200 }}</div>
+        <div class="stat-label">متبقي</div>
+      </div>
+    </div>
+    <div class="guest-total" style="margin-top: 15px; text-align: center; font-size: 1.2rem;">
+      إجمالي متاح: {{ stats.pin_medal_stats.available if stats.pin_medal_stats else 200 }}
+    </div>
+  </div>
+</div>
+
+<!-- إحصائيات طرق الدفع -->
+<h2 style="color: #764ba2; margin: 40px 0 20px;">💳 إحصائيات طرق الدفع</h2>
 
 <div class="payment-grid">
   <!-- InstaPay -->
   <div class="payment-card" style="border-top: 5px solid #0057e7;">
     <div class="payment-title">InstaPay</div>
     
-    <!-- عدد العمليات (حصر) -->
     <div class="payment-count-box">
-      <div class="count-value">{{ stats.instapay.count }}</div>
+      <div class="count-value">{{ stats.instapay.count if stats.instapay else 0 }}</div>
       <div class="count-label">عدد العمليات</div>
     </div>
     
-    <!-- قيمة الحضور والمساهمات -->
     <div class="payment-values">
       <div class="value-box">
-        <div class="value-amount">{{ stats.instapay.attendees_value }} جنيه</div>
+        <div class="value-amount">{{ stats.instapay.attendees_value if stats.instapay else 0 }} جنيه</div>
         <div class="value-label">قيمة الحضور</div>
-        <div class="value-count">({{ stats.instapay.attendees_count }} عملية)</div>
       </div>
       <div class="value-box">
-        <div class="value-amount">{{ stats.instapay.contributions_value }} جنيه</div>
+        <div class="value-amount">{{ stats.instapay.contributions_value if stats.instapay else 0 }} جنيه</div>
         <div class="value-label">قيمة المساهمات</div>
-        <div class="value-count">({{ stats.instapay.contributions_count }} عملية)</div>
       </div>
     </div>
     
     <div class="payment-total">
-      الإجمالي: {{ stats.instapay.total }} جنيه
+      الإجمالي: {{ stats.instapay.total if stats.instapay else 0 }} جنيه
     </div>
   </div>
   
@@ -67,67 +111,24 @@
   <div class="payment-card" style="border-top: 5px solid #ff4b2b;">
     <div class="payment-title">محفظة إلكترونية</div>
     
-    <!-- عدد العمليات (حصر) -->
     <div class="payment-count-box">
-      <div class="count-value">{{ stats.wallet.count }}</div>
+      <div class="count-value">{{ stats.wallet.count if stats.wallet else 0 }}</div>
       <div class="count-label">عدد العمليات</div>
     </div>
     
-    <!-- قيمة الحضور والمساهمات -->
     <div class="payment-values">
       <div class="value-box">
-        <div class="value-amount">{{ stats.wallet.attendees_value }} جنيه</div>
+        <div class="value-amount">{{ stats.wallet.attendees_value if stats.wallet else 0 }} جنيه</div>
         <div class="value-label">قيمة الحضور</div>
-        <div class="value-count">({{ stats.wallet.attendees_count }} عملية)</div>
       </div>
       <div class="value-box">
-        <div class="value-amount">{{ stats.wallet.contributions_value }} جنيه</div>
+        <div class="value-amount">{{ stats.wallet.contributions_value if stats.wallet else 0 }} جنيه</div>
         <div class="value-label">قيمة المساهمات</div>
-        <div class="value-count">({{ stats.wallet.contributions_count }} عملية)</div>
       </div>
     </div>
     
     <div class="payment-total">
-      الإجمالي: {{ stats.wallet.total }} جنيه
-    </div>
-  </div>
-</div>
-
-<!-- =============== إحصائيات الضيوف والبروش =============== -->
-<h2 style="color: #764ba2; margin: 40px 0 20px;">👥 إحصائيات الضيوف والبروش</h2>
-
-<div class="guests-grid">
-  <!-- الضيوف الكلي -->
-  <div class="guest-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-    <div class="guest-title">إجمالي الضيوف</div>
-    <div class="guest-main">{{ stats.guests.total_guests }}</div>
-    <div class="guest-details">
-      <div>أساسي: {{ stats.guests.attendees }}</div>
-      <div>إضافي: {{ stats.guests.extra_people }}</div>
-    </div>
-  </div>
-  
-  <!-- الضيوف مع/بدون إضافيين -->
-  <div class="guest-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-    <div class="guest-title">توزيع الضيوف</div>
-    <div class="guest-stats">
-      <div class="guest-stat">
-        <div class="stat-value">{{ stats.guests.with_extra }}</div>
-        <div class="stat-label">مع إضافيين</div>
-      </div>
-      <div class="guest-stat">
-        <div class="stat-value">{{ stats.guests.without_extra }}</div>
-        <div class="stat-label">بدون إضافيين</div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- البروش والميدالية -->
-  <div class="guest-card" style="background: linear-gradient(135deg, #9a7b2f 0%, #d9b96d 100%);">
-    <div class="guest-title">بروش + ميدالية</div>
-    <div class="guest-main">{{ stats.pin_medal.count }}</div>
-    <div class="guest-details">
-      <div>عدد المطلوب: {{ stats.pin_medal.count }} بروش</div>
+      الإجمالي: {{ stats.wallet.total if stats.wallet else 0 }} جنيه
     </div>
   </div>
 </div>
@@ -157,16 +158,16 @@
         <td>{{ ticket_label(b.ticket_type) }}</td>
         <td>
           {% if b.is_attending %}
-            {{ b.extra_people if b.extra_people else 0 }}
+            {{ b.extra_people if b.extra_people and b.extra_people > 0 else 0 }}
           {% else %}
             -
           {% endif %}
         </td>
         <td>
-          {% if b.is_attending and b.pin_medal %}
-            ✅ نعم
+          {% if b.is_attending and b.pin_medal and b.pin_medal == 1 %}
+            <span style="color: #28a745; font-weight: bold;">✅ نعم</span>
           {% elif b.is_attending %}
-            ❌ لا
+            <span style="color: #6c757d;">❌ لا</span>
           {% else %}
             -
           {% endif %}
@@ -174,9 +175,9 @@
         <td>{{ b.amount }} جنيه</td>
         <td>
           {% if b.payment_method == 'instapay' %}
-            <span style="color: #0057e7;">InstaPay</span>
+            <span style="color: #0057e7; font-weight: bold;">InstaPay</span>
           {% else %}
-            <span style="color: #ff4b2b;">محفظة</span>
+            <span style="color: #ff4b2b; font-weight: bold;">محفظة</span>
           {% endif %}
         </td>
         <td>
@@ -185,8 +186,14 @@
             {% elif b.status == 'pending_review' %}warn
             {% elif b.status == 'rejected' %}error
             {% elif b.status == 'used' %}used
+            {% elif b.status == 'pending_proof' %}warn
             {% endif %}">
-            {{ b.status }}
+            {% if b.status == 'paid' %}مدفوع
+            {% elif b.status == 'pending_review' %}في الانتظار
+            {% elif b.status == 'rejected' %}مرفوض
+            {% elif b.status == 'used' %}تم الدخول
+            {% elif b.status == 'pending_proof' %}في انتظار الإثبات
+            {% else %}{{ b.status }}{% endif %}
           </span>
         </td>
         <td>
@@ -242,90 +249,6 @@
     opacity: 0.9;
   }
   
-  /* إحصائيات طرق الدفع */
-  .payment-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 25px;
-    margin-bottom: 40px;
-  }
-  
-  .payment-card {
-    background: white;
-    border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  }
-  
-  .payment-title {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  
-  /* عدد العمليات (حصر) */
-  .payment-count-box {
-    background: #f0f0f0;
-    border-radius: 15px;
-    padding: 15px;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  .count-value {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #333;
-  }
-  
-  .count-label {
-    font-size: 0.9rem;
-    color: #666;
-  }
-  
-  /* قيمة الحضور والمساهمات */
-  .payment-values {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin-bottom: 20px;
-  }
-  
-  .value-box {
-    text-align: center;
-    padding: 15px;
-    background: #f8f9ff;
-    border-radius: 10px;
-  }
-  
-  .value-amount {
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #28a745;
-  }
-  
-  .value-label {
-    font-size: 0.9rem;
-    color: #666;
-    margin: 5px 0;
-  }
-  
-  .value-count {
-    font-size: 0.8rem;
-    color: #999;
-  }
-  
-  .payment-total {
-    text-align: center;
-    padding: 15px;
-    background: #f0f0f0;
-    border-radius: 10px;
-    font-weight: bold;
-    font-size: 1.2rem;
-  }
-  
   /* إحصائيات الضيوف */
   .guests-grid {
     display: grid;
@@ -373,6 +296,72 @@
     padding: 10px;
     background: rgba(255,255,255,0.2);
     border-radius: 10px;
+  }
+  
+  /* إحصائيات طرق الدفع */
+  .payment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+    margin-bottom: 40px;
+  }
+  
+  .payment-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  }
+  
+  .payment-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .payment-count-box {
+    background: #f0f0f0;
+    border-radius: 15px;
+    padding: 15px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .count-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .payment-values {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .value-box {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9ff;
+    border-radius: 10px;
+  }
+  
+  .value-amount {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #28a745;
+  }
+  
+  .payment-total {
+    text-align: center;
+    padding: 15px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.2rem;
   }
   
   /* الجدول */
@@ -425,8 +414,8 @@
   }
   
   @media (max-width: 768px) {
-    .payment-grid,
-    .guests-grid {
+    .guests-grid,
+    .payment-grid {
       grid-template-columns: 1fr;
     }
   }
