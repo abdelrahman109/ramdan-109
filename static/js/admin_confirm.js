@@ -1,18 +1,10 @@
 // تأكيد قبل الإجراءات
-function confirmAction(message, form) {
-    if (confirm(message)) {
-        form.submit();
-    }
-    return false;
-}
-
-// إضافة تأكيد لكل الأزرار المهمة
 document.addEventListener('DOMContentLoaded', function() {
     // تأكيد للرفض
     const rejectForms = document.querySelectorAll('form[action*="reject"]');
     rejectForms.forEach(form => {
         form.addEventListener('submit', function(e) {
-            if (!confirm('❓ هل أنت متأكد من رفض هذا الدفع؟')) {
+            if (!confirm('❌ هل أنت متأكد من رفض هذا الدفع؟')) {
                 e.preventDefault();
             }
         });
@@ -38,15 +30,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // رسالة نجاح/فشل للمسح
-    console.log('Admin confirm script loaded');
-});
-
-// دالة لنسخ النص
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        alert('تم النسخ!');
-    }, function() {
-        alert('فشل النسخ');
+    // تأكيد للحذف
+    const deleteForms = document.querySelectorAll('form[action*="delete"]');
+    deleteForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            if (!confirm('🚨 تحذير شديد: هل أنت متأكد من حذف هذا الحجز نهائياً؟\nهذا الإجراء لا يمكن التراجع عنه!')) {
+                e.preventDefault();
+            }
+        });
     });
-}
+});
