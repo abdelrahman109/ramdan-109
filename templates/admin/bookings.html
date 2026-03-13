@@ -49,33 +49,43 @@
         <td>{{ ticket_label(b.ticket_type) }}</td>
         <td>
           {% if b.is_attending %}
-            {{ b.extra_people if b.extra_people else 0 }}
+            {{ b.extra_people if b.extra_people and b.extra_people > 0 else 0 }}
           {% else %}
             -
           {% endif %}
         </td>
         <td>
-          {% if b.is_attending and b.pin_medal %}
-            ✅ نعم
-          {% elif b.is_attending %}
-            ❌ لا
+          {% if b.is_attending %}
+            {% if b.pin_medal and b.pin_medal == 1 %}
+              <span style="color: #28a745; font-weight: bold;">✅ نعم</span>
+            {% else %}
+              <span style="color: #6c757d;">❌ لا</span>
+            {% endif %}
           {% else %}
             -
           {% endif %}
         </td>
         <td>{{ b.amount }} جنيه</td>
-        <td>{{ payment_label(b.payment_method) }}</td>
+        <td>
+          {% if b.payment_method == 'instapay' %}
+            <span style="color: #0057e7; font-weight: bold;">InstaPay</span>
+          {% else %}
+            <span style="color: #ff4b2b; font-weight: bold;">محفظة</span>
+          {% endif %}
+        </td>
         <td>
           <span class="badge 
             {% if b.status == 'paid' %}ok
             {% elif b.status == 'pending_review' %}warn
             {% elif b.status == 'rejected' %}error
             {% elif b.status == 'used' %}used
+            {% elif b.status == 'pending_proof' %}warn
             {% endif %}">
             {% if b.status == 'paid' %}مدفوع
             {% elif b.status == 'pending_review' %}في الانتظار
             {% elif b.status == 'rejected' %}مرفوض
             {% elif b.status == 'used' %}تم الدخول
+            {% elif b.status == 'pending_proof' %}في انتظار الإثبات
             {% else %}{{ b.status }}{% endif %}
           </span>
         </td>
@@ -107,7 +117,7 @@
   </table>
   
   {% if bookings|length == 0 %}
-    <p class="text-center">لا توجد حجوزات</p>
+    <p class="text-center" style="padding: 30px; text-align: center;">لا توجد حجوزات</p>
   {% endif %}
 </div>
 
@@ -121,6 +131,7 @@
     padding: 10px 20px;
     border-radius: 8px;
     text-decoration: none;
+    display: inline-block;
   }
   .filters {
     display: grid;
@@ -133,6 +144,7 @@
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 6px;
+    font-size: 14px;
   }
   .filters button {
     background: #9a7b2f;
@@ -140,12 +152,19 @@
     border: none;
     cursor: pointer;
   }
+  .filters button:hover {
+    background: #7a5a12;
+  }
   .action-link {
     background: #f0f0f0;
     padding: 8px 12px;
     border-radius: 6px;
     text-decoration: none;
     color: #333;
+    text-align: center;
+  }
+  .action-link:hover {
+    background: #e0e0e0;
   }
   table {
     width: 100%;
@@ -156,10 +175,15 @@
     color: white;
     padding: 12px;
     text-align: right;
+    font-size: 14px;
   }
   td {
     padding: 10px;
     border-bottom: 1px solid #eee;
+    font-size: 14px;
+  }
+  tr:hover {
+    background: #f8f9ff;
   }
   .badge {
     display: inline-block;
@@ -186,8 +210,23 @@
     font-size: 12px;
     border: none;
     cursor: pointer;
+    background: #f0f0f0;
+    color: #333;
   }
   .btn-small.success { background: #28a745; color: white; }
   .btn-small.danger { background: #dc3545; color: white; }
+  .btn-small:hover { opacity: 0.9; }
+  
+  @media (max-width: 768px) {
+    .filters {
+      grid-template-columns: 1fr;
+    }
+    table {
+      font-size: 12px;
+    }
+    th, td {
+      padding: 6px;
+    }
+  }
 </style>
 {% endblock %}
