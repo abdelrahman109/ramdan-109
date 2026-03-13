@@ -19,6 +19,17 @@ def admin_login():
         flash("كلمة المرور غير صحيحة")
     return render_template("admin/login.html")
 
+@app.route("/admin/logout")
+def admin_logout():
+    session.clear()
+    return redirect(url_for("admin_login"))
+
+@app.route("/admin/dashboard")
+def admin_dashboard():
+    if not is_admin():
+        return redirect(url_for("admin_login"))
+    return redirect(url_for("admin_bookings"))
+
 @app.route("/admin/bookings")
 def admin_bookings():
     if not is_admin():
@@ -35,7 +46,6 @@ def admin_approve_booking(booking_id):
     
     try:
         with connect() as conn:
-            # تحديث الحالة مباشرة في قاعدة البيانات
             conn.execute(
                 "UPDATE bookings SET status='paid', approved_at=datetime('now') WHERE id=?",
                 (booking_id,)
