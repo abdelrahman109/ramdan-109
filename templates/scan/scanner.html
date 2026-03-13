@@ -11,35 +11,30 @@
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         min-height: 100vh;
         font-family: 'Arial', sans-serif;
+        padding: 8px;
     }
     
     .scanner-container {
-        max-width: 1200px;
+        max-width: 450px;
         margin: 0 auto;
-        padding: 20px;
     }
     
-    /* Stats Dashboard */
+    /* Stats Dashboard - مصغر للموبايل */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        margin-bottom: 12px;
     }
     
     .stat-card {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 25px 20px;
+        border-radius: 10px;
+        padding: 10px 5px;
         text-align: center;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        border: 2px solid rgba(255,215,0,0.3);
-        transition: transform 0.3s ease;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-5px);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        border: 1px solid rgba(255,215,0,0.3);
     }
     
     .stat-card.primary {
@@ -58,281 +53,249 @@
     }
     
     .stat-icon {
-        font-size: 2.5rem;
-        margin-bottom: 10px;
+        font-size: 1.3rem;
+        margin-bottom: 3px;
     }
     
     .stat-label {
-        font-size: 1rem;
+        font-size: 0.7rem;
         opacity: 0.9;
-        margin-bottom: 5px;
+        margin-bottom: 2px;
     }
     
     .stat-value {
-        font-size: 2.5rem;
+        font-size: 1.3rem;
         font-weight: bold;
     }
     
     .stat-sub {
-        font-size: 0.9rem;
+        font-size: 0.65rem;
         opacity: 0.8;
-        margin-top: 5px;
     }
     
-    /* Scanner Section */
+    /* Scanner Section - مصغر */
     .scanner-section {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
-        border-radius: 30px;
-        padding: 30px;
-        margin-bottom: 30px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        border: 2px solid rgba(255,215,0,0.3);
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        border: 1px solid rgba(255,215,0,0.3);
     }
     
     .scanner-header {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 25px;
-        flex-wrap: wrap;
-        gap: 15px;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
     }
     
     .scanner-title {
         color: #764ba2;
-        font-size: 1.8rem;
+        font-size: 1.2rem;
+        text-align: center;
     }
     
     .scanner-controls {
         display: flex;
-        gap: 15px;
+        gap: 8px;
         flex-wrap: wrap;
     }
     
-    .gate-input {
-        padding: 12px 20px;
-        border: 2px solid #e0e0e0;
-        border-radius: 15px;
-        font-size: 1rem;
-        width: 200px;
-        background: white;
-    }
-    
-    .gate-input:focus {
-        outline: none;
-        border-color: #764ba2;
-    }
-    
-    .officer-input {
-        padding: 12px 20px;
-        border: 2px solid #e0e0e0;
-        border-radius: 15px;
-        font-size: 1rem;
-        width: 200px;
-        background: white;
-    }
-    
-    .officer-input:focus {
-        outline: none;
-        border-color: #764ba2;
-    }
-    
-    .btn-group {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 25px;
-        flex-wrap: wrap;
-    }
-    
-    .btn {
-        padding: 15px 30px;
-        border: none;
-        border-radius: 15px;
-        font-size: 1.1rem;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+    .gate-input, .officer-input {
         flex: 1;
-        justify-content: center;
+        padding: 8px 10px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        background: white;
+        min-width: 120px;
     }
     
-    .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+    /* Quick Actions - شبكة 2×2 */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        margin-bottom: 12px;
     }
     
-    .btn-success {
-        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        color: white;
+    .action-btn {
+        padding: 10px 5px;
+        border: none;
+        border-radius: 10px;
+        background: white;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        font-size: 0.7rem;
+        border: 1px solid #eee;
     }
     
-    .btn-warning {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        color: white;
+    .action-icon {
+        font-size: 1.2rem;
     }
     
-    .btn-danger {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
+    .action-label {
+        font-weight: bold;
+        color: #333;
     }
     
-    .btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
-    
-    .btn:active {
-        transform: translateY(0);
+    .action-desc {
+        display: none; /* إخفاء الوصف لتوفير مساحة */
     }
     
     /* Scanner Preview */
     .scanner-preview {
         background: #1a1a2e;
-        border-radius: 20px;
-        padding: 20px;
-        margin-bottom: 25px;
-        border: 3px solid #764ba2;
+        border-radius: 12px;
+        padding: 10px;
+        margin-bottom: 12px;
+        border: 2px solid #764ba2;
     }
     
     #reader {
         width: 100% !important;
-        border-radius: 15px;
+        border-radius: 8px;
         overflow: hidden;
     }
     
     #reader video {
-        border-radius: 15px;
+        border-radius: 8px;
+        max-height: 250px;
+        object-fit: cover;
     }
     
+    /* Manual Input */
     .manual-input {
         display: flex;
-        gap: 15px;
-        margin-top: 20px;
+        gap: 8px;
+        margin-top: 10px;
     }
     
     .manual-input input {
         flex: 1;
-        padding: 15px 20px;
-        border: 2px solid #e0e0e0;
-        border-radius: 15px;
-        font-size: 1rem;
+        padding: 10px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 0.85rem;
         background: white;
     }
     
-    .manual-input input:focus {
-        outline: none;
-        border-color: #764ba2;
+    .manual-input button {
+        padding: 10px 15px;
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: bold;
+        white-space: nowrap;
     }
     
-    /* Result Display */
+    /* Result Display - مصغر */
     .result-card {
-        background: white;
-        border-radius: 20px;
-        padding: 30px;
-        margin-top: 25px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        border: 2px solid #e0e0e0;
-        transition: all 0.3s ease;
+        border-radius: 12px;
+        padding: 15px;
+        margin-top: 12px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        font-size: 0.9rem;
     }
     
     .result-card.success {
         background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-        border-color: #28a745;
-    }
-    
-    .result-card.error {
-        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-        border-color: #dc3545;
+        border: 1px solid #28a745;
     }
     
     .result-card.warning {
         background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
-        border-color: #ffc107;
+        border: 1px solid #ffc107;
+    }
+    
+    .result-card.error {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        border: 1px solid #dc3545;
     }
     
     .result-icon {
-        font-size: 4rem;
+        font-size: 2rem;
         text-align: center;
-        margin-bottom: 15px;
+        margin-bottom: 5px;
     }
     
     .result-title {
-        font-size: 2rem;
+        font-size: 1.2rem;
         font-weight: bold;
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 8px;
     }
     
     .result-details {
-        font-size: 1.2rem;
-        line-height: 2;
+        font-size: 0.9rem;
+        line-height: 1.5;
         text-align: center;
     }
     
     .result-details p {
-        margin: 10px 0;
+        margin: 3px 0;
     }
     
     .result-badge {
         display: inline-block;
-        padding: 10px 25px;
-        border-radius: 30px;
-        font-size: 1.3rem;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
         font-weight: bold;
-        margin: 10px 0;
+        margin-top: 5px;
     }
     
-    /* Recent Scans */
+    /* Recent Scans - مصغر */
     .recent-scans {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
-        border-radius: 30px;
-        padding: 30px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        border: 2px solid rgba(255,215,0,0.3);
+        border-radius: 15px;
+        padding: 12px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        border: 1px solid rgba(255,215,0,0.3);
     }
     
     .recent-title {
         color: #764ba2;
-        font-size: 1.5rem;
-        margin-bottom: 20px;
+        font-size: 1rem;
+        margin-bottom: 10px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 5px;
     }
     
     .scans-table {
         width: 100%;
         border-collapse: collapse;
+        font-size: 0.8rem;
     }
     
     .scans-table th {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 15px;
-        text-align: right;
-        font-size: 1rem;
+        padding: 6px 4px;
+        font-size: 0.75rem;
     }
     
     .scans-table td {
-        padding: 12px 15px;
-        border-bottom: 1px solid #e0e0e0;
+        padding: 6px 4px;
+        border-bottom: 1px solid #eee;
         text-align: right;
-    }
-    
-    .scans-table tr:hover {
-        background: #f8f9ff;
     }
     
     .scan-badge {
         display: inline-block;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 0.9rem;
+        padding: 3px 6px;
+        border-radius: 12px;
+        font-size: 0.65rem;
         font-weight: bold;
         color: white;
     }
@@ -341,140 +304,94 @@
         background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
     }
     
+    .scan-badge.warning {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
     .scan-badge.error {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     }
     
-    /* Quick Actions */
-    .quick-actions {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 25px;
-        flex-wrap: wrap;
-    }
-    
-    .action-btn {
-        flex: 1;
-        min-width: 150px;
-        padding: 20px;
-        border: none;
-        border-radius: 20px;
-        background: white;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        border: 2px solid transparent;
-    }
-    
-    .action-btn:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        border-color: #764ba2;
-    }
-    
-    .action-icon {
-        font-size: 2.5rem;
-    }
-    
-    .action-label {
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: #333;
-    }
-    
-    .action-desc {
-        font-size: 0.9rem;
-        color: #666;
-    }
-    
-    @media (max-width: 768px) {
-        .scanner-header {
-            flex-direction: column;
-            align-items: stretch;
+    /* تحسينات للموبايل */
+    @media (max-width: 380px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
         }
         
-        .gate-input, .officer-input {
-            width: 100%;
-        }
-        
-        .btn-group {
-            flex-direction: column;
+        .quick-actions {
+            grid-template-columns: 1fr;
         }
         
         .manual-input {
             flex-direction: column;
         }
         
-        .stats-grid {
-            grid-template-columns: 1fr;
+        .manual-input button {
+            width: 100%;
+        }
+        
+        .scanner-controls {
+            flex-direction: column;
+        }
+        
+        .gate-input, .officer-input {
+            width: 100%;
         }
     }
 </style>
 
 <div class="scanner-container">
-    <!-- Stats Dashboard -->
+    <!-- Stats Dashboard مصغر -->
     <div class="stats-grid" id="statsDashboard">
         <div class="stat-card primary">
             <div class="stat-icon">🎟</div>
-            <div class="stat-label">إجمالي الحضور</div>
+            <div class="stat-label">الحضور</div>
             <div class="stat-value" id="totalAttendees">0</div>
-            <div class="stat-sub">شخص</div>
         </div>
         <div class="stat-card success">
             <div class="stat-icon">✅</div>
-            <div class="stat-label">تم الدخول</div>
+            <div class="stat-label">دخل</div>
             <div class="stat-value" id="checkedIn">0</div>
-            <div class="stat-sub">شخص</div>
         </div>
         <div class="stat-card warning">
             <div class="stat-icon">⏳</div>
-            <div class="stat-label">المتبقي</div>
+            <div class="stat-label">متبقي</div>
             <div class="stat-value" id="remaining">0</div>
-            <div class="stat-sub">شخص</div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">📊</div>
-            <div class="stat-label">نسبة الدخول</div>
+            <div class="stat-label">نسبة</div>
             <div class="stat-value" id="percentage">0%</div>
-            <div class="stat-sub">من إجمالي الحضور</div>
         </div>
     </div>
     
     <!-- Scanner Section -->
     <div class="scanner-section">
         <div class="scanner-header">
-            <h2 class="scanner-title">📱 ماسح QR</h2>
+            <div class="scanner-title">📱 ماسح QR</div>
             <div class="scanner-controls">
-                <input type="text" id="gateName" class="gate-input" placeholder="اسم البوابة (مثل: بوابة 1)" value="البوابة الرئيسية">
-                <input type="text" id="officerName" class="officer-input" placeholder="اسم الموظف">
+                <input type="text" id="gateName" class="gate-input" placeholder="البوابة" value="بوابة 1">
+                <input type="text" id="officerName" class="officer-input" placeholder="الموظف">
             </div>
         </div>
         
-        <!-- Quick Actions -->
+        <!-- Quick Actions مصغرة -->
         <div class="quick-actions">
             <button class="action-btn" onclick="startScanner()">
                 <span class="action-icon">📷</span>
-                <span class="action-label">تشغيل الكاميرا</span>
-                <span class="action-desc">مسح QR مباشرة</span>
+                <span class="action-label">تشغيل</span>
             </button>
             <button class="action-btn" onclick="stopScanner()">
                 <span class="action-icon">⏹</span>
-                <span class="action-label">إيقاف الكاميرا</span>
-                <span class="action-desc">إيقاف المسح</span>
+                <span class="action-label">إيقاف</span>
             </button>
             <button class="action-btn" onclick="clearResult()">
                 <span class="action-icon">🔄</span>
-                <span class="action-label">مسح النتيجة</span>
-                <span class="action-desc">تفريغ الشاشة</span>
+                <span class="action-label">مسح</span>
             </button>
             <button class="action-btn" onclick="refreshStats()">
                 <span class="action-icon">📊</span>
-                <span class="action-label">تحديث الإحصائيات</span>
-                <span class="action-desc">تحديث الأرقام</span>
+                <span class="action-label">تحديث</span>
             </button>
         </div>
         
@@ -485,13 +402,8 @@
         
         <!-- Manual Input -->
         <div class="manual-input">
-            <input type="text" id="manualToken" placeholder="أو الصق رمز QR هنا">
-            <button class="btn btn-primary" onclick="manualCheck()">
-                <span>🔍</span> تحقق يدوي
-            </button>
-            <button class="btn btn-success" onclick="manualCheckin()">
-                <span>✅</span> تسجيل دخول يدوي
-            </button>
+            <input type="text" id="manualToken" placeholder="الصق رمز QR">
+            <button onclick="manualCheckin()">تسجيل</button>
         </div>
         
         <!-- Result Display -->
@@ -502,24 +414,23 @@
         </div>
     </div>
     
-    <!-- Recent Scans -->
+    <!-- Recent Scans مصغرة -->
     <div class="recent-scans">
-        <h3 class="recent-title">
+        <div class="recent-title">
             <span>📋</span>
-            <span>آخر عمليات المسح</span>
-        </h3>
+            <span>آخر العمليات</span>
+        </div>
         <table class="scans-table">
             <thead>
                 <tr>
                     <th>الوقت</th>
                     <th>الاسم</th>
-                    <th>نوع التذكرة</th>
                     <th>النتيجة</th>
                 </tr>
             </thead>
             <tbody id="recentScansList">
                 <tr>
-                    <td colspan="4" style="text-align: center; padding: 30px;">جاري تحميل البيانات...</td>
+                    <td colspan="3" style="text-align: center; padding: 10px;">جاري التحميل...</td>
                 </tr>
             </tbody>
         </table>
@@ -532,7 +443,7 @@
     let html5QrcodeScanner = null;
     let lastResult = null;
     
-    // Auto-refresh stats every 30 seconds
+    // Auto-refresh stats
     setInterval(refreshStats, 30000);
     
     // Load initial data
@@ -551,7 +462,7 @@
             "reader", 
             { 
                 fps: 10, 
-                qrbox: 250,
+                qrbox: 200,
                 rememberLastUsedCamera: true,
                 showTorchButtonIfSupported: true
             }
@@ -577,7 +488,7 @@
         if (token) {
             checkinTicket(token);
         } else {
-            showResult('error', '❌', 'رمز غير صالح', 'لم نتمكن من قراءة رمز QR بشكل صحيح');
+            showResult('error', '❌', 'رمز غير صالح', 'لم نتمكن من قراءة رمز QR');
         }
     }
     
@@ -597,16 +508,6 @@
         }
     }
     
-    // Manual check
-    function manualCheck() {
-        let token = document.getElementById('manualToken').value.trim();
-        if (!token) {
-            alert('الرجاء إدخال رمز QR');
-            return;
-        }
-        validateTicket(token);
-    }
-    
     // Manual checkin
     function manualCheckin() {
         let token = document.getElementById('manualToken').value.trim();
@@ -617,33 +518,9 @@
         checkinTicket(token);
     }
     
-    // Validate ticket only
-    async function validateTicket(token) {
-        try {
-            let response = await fetch('/api/validate-ticket', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ qr_token: token })
-            });
-            
-            let data = await response.json();
-            
-            if (data.status === 'valid') {
-                showResult('success', '✅', 'تذكرة صالحة', 
-                    `<p><strong>الاسم:</strong> ${data.name || 'غير معروف'}</p>
-                     <p><strong>النوع:</strong> ${data.ticket_type || 'غير محدد'}</p>
-                     <p><strong>الكود:</strong> ${data.booking_code || 'غير معروف'}</p>`);
-            } else {
-                showResult('error', '❌', 'تذكرة غير صالحة', data.message || 'لا يمكن التحقق من التذكرة');
-            }
-        } catch (error) {
-            showResult('error', '❌', 'خطأ', 'حدث خطأ في الاتصال');
-        }
-    }
-    
     // Checkin ticket
     async function checkinTicket(token) {
-        let gateName = document.getElementById('gateName').value.trim() || 'البوابة الرئيسية';
+        let gateName = document.getElementById('gateName').value.trim() || 'بوابة 1';
         let officerName = document.getElementById('officerName').value.trim() || 'موظف';
         
         try {
@@ -659,27 +536,31 @@
             
             let data = await response.json();
             
+            // تفريغ الحقل بعد المسح
+            document.getElementById('manualToken').value = '';
+            
             if (data.status === 'success') {
                 showResult('success', '✅', 'دخول مسموح', 
-                    `<p><strong>الاسم:</strong> ${data.name || 'غير معروف'}</p>
-                     <p><strong>النوع:</strong> ${data.ticket_type || 'غير محدد'}</p>
-                     <p><strong>الكود:</strong> ${data.booking_code || 'غير معروف'}</p>
-                     <span class="result-badge" style="background: #28a745; color: white;">✓ تم تسجيل الدخول</span>`);
+                    `<p><strong>${data.name || ''}</strong></p>
+                     <p>${data.ticket_type || ''}</p>
+                     <span class="result-badge" style="background: #28a745; color: white;">✓ تم التسجيل</span>`);
                 refreshStats();
                 loadRecentScans();
             } else if (data.status === 'already_used') {
-                showResult('warning', '⚠️', 'التذكرة مستخدمة مسبقاً', 
-                    `<p><strong>الاسم:</strong> ${data.name || 'غير معروف'}</p>
-                     <p><strong>النوع:</strong> ${data.ticket_type || 'غير محدد'}</p>
-                     <p><strong>الكود:</strong> ${data.booking_code || 'غير معروف'}</p>
-                     <span class="result-badge" style="background: #ffc107; color: black;">⏱ تم الدخول من قبل</span>`);
+                showResult('warning', '⚠️', 'مستخدمة مسبقاً', 
+                    `<p><strong>${data.name || ''}</strong></p>
+                     <span class="result-badge" style="background: #ffc107; color: black;">⏱ دخل من قبل</span>`);
+                refreshStats();
+                loadRecentScans();
             } else if (data.status === 'unpaid') {
-                showResult('warning', '⚠️', 'التذكرة غير مدفوعة', 
-                    `<p>هذه التذكرة لم يتم دفعها بعد</p>`);
+                showResult('warning', '⚠️', 'غير مدفوعة', 
+                    `<p>هذه التذكرة لم يتم دفعها</p>`);
             } else {
-                showResult('error', '❌', 'خطأ', data.message || 'تذكرة غير صالحة');
+                showResult('error', '❌', 'غير صالحة', 
+                    `<p>${data.message || 'رمز غير صالح'}</p>`);
             }
         } catch (error) {
+            console.error('Error:', error);
             showResult('error', '❌', 'خطأ', 'حدث خطأ في الاتصال');
         }
     }
@@ -697,13 +578,13 @@
         titleDiv.innerHTML = title;
         detailsDiv.innerHTML = details;
         
-        // Auto-hide after 10 seconds for success
+        // Auto-hide after 5 seconds
         if (type === 'success') {
             setTimeout(() => {
                 if (resultDiv.style.display === 'block') {
                     resultDiv.style.display = 'none';
                 }
-            }, 10000);
+            }, 5000);
         }
     }
     
@@ -729,7 +610,6 @@
             let percentage = data.total > 0 ? Math.round((data.checked_in / data.total) * 100) : 0;
             document.getElementById('percentage').innerText = percentage + '%';
             
-            loadRecentScans();
         } catch (error) {
             console.log('Error refreshing stats:', error);
         }
@@ -744,20 +624,21 @@
             let list = document.getElementById('recentScansList');
             if (data.scans && data.scans.length > 0) {
                 let html = '';
-                data.scans.forEach(scan => {
-                    let statusClass = scan.result === 'success' ? 'success' : 'error';
-                    let statusText = scan.result === 'success' ? '✓ دخول' : '✗ رفض';
+                data.scans.slice(0, 5).forEach(scan => { // آخر 5 عمليات بس
+                    let statusClass = scan.result === 'success' ? 'success' : 
+                                    (scan.result === 'already_used' ? 'warning' : 'error');
+                    let statusText = scan.result === 'success' ? '✓' : 
+                                    (scan.result === 'already_used' ? '⚠️' : '✗');
                     
                     html += `<tr>
                         <td>${scan.time || ''}</td>
-                        <td>${scan.name || 'غير معروف'}</td>
-                        <td>${scan.ticket_type || 'غير محدد'}</td>
+                        <td>${scan.name?.substring(0, 10) || ''}</td>
                         <td><span class="scan-badge ${statusClass}">${statusText}</span></td>
                     </tr>`;
                 });
                 list.innerHTML = html;
             } else {
-                list.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 30px;">لا توجد عمليات مسح حتى الآن</td></tr>';
+                list.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 10px;">لا توجد عمليات</td></tr>';
             }
         } catch (error) {
             console.log('Error loading scans:', error);
