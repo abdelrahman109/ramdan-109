@@ -61,15 +61,15 @@ def create_ticket_image(booking, qr_image_path, out_path):
     body_font = _font(32)        # Arial Bold 32 للنصوص العادية
     small_font = _font(24)       # Arial Bold 24 للنصوص الصغيرة
     
-    y = 280  # بداية الكتابة بعد اللوجو (أقرب شوية)
+    y = 280  # بداية الكتابة بعد اللوجو
     
-    # العنوان على سطرين - في النص بمسافات 1.5 (زيادة المسافة بين السطور)
+    # العنوان على 3 أسطر - بمسافات واضحة
     draw.text((600, y), "حفل إفطار وتكريم", fill="#7a5a12", font=title_font1, anchor="mt")
-    y += 70  # مسافة 1.5 تقريباً (بدلاً من 55)
+    y += 100  # مسافة أكبر بين السطر الأول والثاني
     draw.text((600, y), "أسر شهداء الدفعة 109", fill="#7a5a12", font=title_font2, anchor="mt")
-    y += 45
+    y += 85   # مسافة بين السطر الثاني والثالث
     draw.text((600, y), "كليات ومعاهد عسكرية", fill="#7a5a12", font=title_font2, anchor="mt")
-    y += 90  # مسافة أكبر قبل الاسم
+    y += 120  # مسافة أكبر قبل الاسم
     
     # اسم الشخص - في النص
     draw.text((600, y), f"الاسم: {booking['name']}", fill="black", font=name_font, anchor="mt")
