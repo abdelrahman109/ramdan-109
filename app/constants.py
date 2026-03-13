@@ -10,6 +10,7 @@ STATUS_PENDING_REVIEW = "pending_review"
 STATUS_PAID = "paid"
 STATUS_REJECTED = "rejected"
 STATUS_USED = "used"
+STATUS_CANCELLED = "cancelled"
 
 TICKETS = {
     TICKET_FULL: {"label": "حضور الحفل + الإفطار + ميدالية + بروش", "amount": 565, "attending": True},
