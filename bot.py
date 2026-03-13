@@ -113,6 +113,9 @@ def on_amount(c):
     try:
         amount = int(c.data.split(":", 1)[1])
         session = get_session(c.message.chat.id)
+        if not session:
+            bot.answer_callback_query(c.id, "انتهت الجلسة، ابدأ من /start")
+            return
         data = session["data"]
         data["amount"] = amount
         set_session(c.message.chat.id, STATE_ENTER_NAME, data)
@@ -132,8 +135,13 @@ def on_payment(c):
             bot.answer_callback_query(c.id, "ابدأ من /start")
             return
         data = session["data"]
+        if "name" not in data or "phone" not in data:
+            bot.answer_callback_query(c.id, "بيانات غير كاملة، ابدأ من /start")
+            return
+            
         booking = create_booking(c.message.chat.id, data["name"], data["phone"], data["ticket_type"], data["amount"], payment_method)
         set_session(c.message.chat.id, STATE_WAITING_PAYMENT_PROOF, {"booking_code": booking["booking_code"], "booking_id": booking["id"]})
+        
         if payment_method == PAY_INSTAPAY:
             text = (
                 "الدفع عبر InstaPay\n\n"
@@ -169,13 +177,16 @@ def on_photo(message):
         if not booking:
             bot.reply_to(message, "لم يتم العثور على الحجز.", reply_markup=main_reply_keyboard())
             return
+            
         photo = message.photo[-1]
         file_info = bot.get_file(photo.file_id)
         file_data = bot.download_file(file_info.file_path)
         path = payment_proof_path(booking["booking_code"])
         Path(path).parent.mkdir(parents=True, exist_ok=True)
+        
         with open(path, "wb") as f:
             f.write(file_data)
+            
         update_payment_proof(booking["id"], path)
         booking = get_booking_by_code(booking["booking_code"])
         
@@ -197,36 +208,25 @@ def handle_admin_decision(call):
             bot.answer_callback_query(call.id, "غير مصرح لك بهذا الإجراء")
             return
         
-        action, booking_id = call.data.split('_')
-        booking_id = int(booking_id)
+        action, booking_id_str = call.data.split('_')
+        booking_id = int(booking_id_str)
+        
+        # جلب بيانات الحجز
+        booking = get_booking_by_id(booking_id)
+        if not booking:
+            bot.answer_callback_query(call.id, "الحجز غير موجود")
+            return
         
         if action == 'approve':
             # قبول الدفع
             booking = approve_booking(booking_id)
             
-            if not booking:
-                bot.answer_callback_query(call.id, "الحجز غير موجود")
-                return
-            
             if booking['is_attending']:
-                # للحضور - إنشاء تذكرة وإرسالها
                 booking = generate_ticket_for_booking(booking)
-                # محاولة إرسال التذكرة مع معالجة الأخطاء
-                try:
-                    send_ticket_message(booking)
-                except Exception as e:
-                    print(f"Error sending ticket message: {e}")
-                    traceback.print_exc()
-                
+                send_ticket_message(booking)
                 response_text = "✅ تم قبول الدفع وإرسال التذكرة للمستخدم"
             else:
-                # للمساهمين - إرسال رسالة شكر
-                try:
-                    send_thank_you_message(booking)
-                except Exception as e:
-                    print(f"Error sending thank you: {e}")
-                    traceback.print_exc()
-                
+                send_thank_you_message(booking)
                 response_text = "✅ تم قبول المساهمة وإرسال رسالة الشكر"
             
             # تعديل رسالة الأدمن
@@ -251,13 +251,8 @@ def handle_admin_decision(call):
         elif action == 'reject':
             # رفض الدفع
             booking = reject_booking(booking_id)
-            
-            if booking:
-                try:
-                    send_rejected_message(booking)
-                except Exception as e:
-                    print(f"Error sending rejected message: {e}")
-                    traceback.print_exc()
+            send_rejected_message(booking)
+            response_text = "❌ تم رفض الدفع وإشعار المستخدم"
             
             # تعديل رسالة الأدمن
             try:
@@ -277,9 +272,8 @@ def handle_admin_decision(call):
                     )
             except Exception as e:
                 print(f"Error editing admin message: {e}")
-            
-            response_text = "❌ تم رفض الدفع وإشعار المستخدم"
         
+        # إرسال رد callback
         bot.answer_callback_query(call.id, response_text)
         
     except Exception as e:
@@ -296,11 +290,16 @@ def on_text(message):
             return
         state = session["state"]
         data = session["data"]
+        
         if state == STATE_ENTER_NAME:
+            if not message.text or len(message.text.strip()) < 3:
+                bot.reply_to(message, "الاسم قصير جداً، اكتب الاسم كاملاً", reply_markup=main_reply_keyboard())
+                return
             data["name"] = message.text.strip()
             set_session(message.chat.id, STATE_ENTER_PHONE, data)
             bot.reply_to(message, "اكتب رقم الموبايل", reply_markup=main_reply_keyboard())
             return
+            
         if state == STATE_ENTER_PHONE:
             phone = normalize_phone(message.text)
             if not is_valid_phone(phone):
@@ -310,6 +309,7 @@ def on_text(message):
             set_session(message.chat.id, "select_payment_method", data)
             bot.send_message(message.chat.id, "اختر طريقة الدفع المناسبة", reply_markup=payment_method_keyboard())
             return
+            
         bot.reply_to(message, "استخدم الأزرار الموجودة بالأسفل أو أرسل /start", reply_markup=main_reply_keyboard())
     except Exception as e:
         print(f"Error in on_text: {e}")
@@ -318,8 +318,12 @@ def on_text(message):
 
 if __name__ == "__main__":
     print("Bot running...")
-    try:
-        bot.infinity_polling(skip_pending=True)
-    except Exception as e:
-        print(f"Fatal error in bot: {e}")
-        traceback.print_exc()
+    while True:
+        try:
+            bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            print(f"Bot crashed: {e}")
+            traceback.print_exc()
+            print("Restarting bot in 5 seconds...")
+            import time
+            time.sleep(5)
