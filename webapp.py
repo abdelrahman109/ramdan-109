@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
+import os
 from app.config import SECRET_KEY, ADMIN_PASSWORD, EVENT_NAME, EVENT_LOCATION, EVENT_MAP, EVENT_TIME, UPLOADS_DIR, BASE_URL
 from app.db import init_db, connect
 from app.utils import ticket_label, payment_label, basename
@@ -89,42 +90,112 @@ def admin_approve_booking(booking_id):
     if not is_admin():
         return redirect(url_for("admin_login"))
     
-    booking = approve_booking(booking_id)
-    
-    if booking["is_attending"]:
-        booking = generate_ticket_for_booking(booking)
-        send_ticket_message(booking)
-        flash("✅ تم اعتماد الدفع وإرسال التذكرة للمستخدم")
-    else:
-        send_thank_you_message(booking)
-        flash("✅ تم اعتماد المساهمة وإرسال رسالة الشكر")
-    
-    return redirect(request.referrer or url_for("admin_bookings"))
+    try:
+        booking = approve_booking(booking_id)
+        
+        if not booking:
+            flash("❌ الحجز غير موجود")
+            return redirect(request.referrer or url_for("admin_bookings"))
+        
+        if not booking['telegram_chat_id']:
+            flash("⚠️ تحذير: لا يوجد معرف محادثة للمستخدم")
+            return redirect(request.referrer or url_for("admin_bookings"))
+        
+        if booking["is_attending"]:
+            booking = generate_ticket_for_booking(booking)
+            send_ticket_message(booking)
+            flash("✅ تم اعتماد الدفع وإرسال التذكرة للمستخدم")
+        else:
+            send_thank_you_message(booking)
+            flash("✅ تم اعتماد المساهمة وإرسال رسالة الشكر")
+        
+        return redirect(request.referrer or url_for("admin_bookings"))
+        
+    except Exception as e:
+        print(f"Error in approve_booking: {e}")
+        flash(f"❌ حدث خطأ: {str(e)}")
+        return redirect(request.referrer or url_for("admin_bookings"))
 
 @app.route("/admin/bookings/<int:booking_id>/reject", methods=["POST"])
 def admin_reject_booking(booking_id):
     if not is_admin():
         return redirect(url_for("admin_login"))
     
-    booking = reject_booking(booking_id)
-    send_rejected_message(booking)
-    flash("❌ تم رفض الدفع وإشعار المستخدم")
-    
-    return redirect(request.referrer or url_for("admin_bookings"))
+    try:
+        booking = reject_booking(booking_id)
+        
+        if booking and booking['telegram_chat_id']:
+            send_rejected_message(booking)
+            flash("❌ تم رفض الدفع وإشعار المستخدم")
+        else:
+            flash("❌ تم رفض الدفع")
+        
+        return redirect(request.referrer or url_for("admin_bookings"))
+        
+    except Exception as e:
+        print(f"Error in reject_booking: {e}")
+        flash(f"❌ حدث خطأ: {str(e)}")
+        return redirect(request.referrer or url_for("admin_bookings"))
 
 @app.route("/admin/bookings/<int:booking_id>/resend-ticket", methods=["POST"])
 def admin_resend_ticket(booking_id):
     if not is_admin():
         return redirect(url_for("admin_login"))
     
-    booking = get_booking_by_id(booking_id)
-    if booking and booking["is_attending"] and booking["status"] in ("paid", "used"):
-        send_ticket_message(booking)
-        flash("✅ تمت إعادة إرسال التذكرة")
-    else:
-        flash("⚠️ لا يمكن إعادة إرسال هذه التذكرة")
+    try:
+        booking = get_booking_by_id(booking_id)
+        if booking and booking["is_attending"] and booking["status"] in ("paid", "used"):
+            if booking['telegram_chat_id']:
+                send_ticket_message(booking)
+                flash("✅ تمت إعادة إرسال التذكرة")
+            else:
+                flash("⚠️ لا يمكن إعادة الإرسال: لا يوجد معرف محادثة")
+        else:
+            flash("⚠️ لا يمكن إعادة إرسال هذه التذكرة")
+        
+        return redirect(url_for("admin_booking_details", booking_id=booking_id))
+        
+    except Exception as e:
+        print(f"Error in resend_ticket: {e}")
+        flash(f"❌ حدث خطأ: {str(e)}")
+        return redirect(url_for("admin_booking_details", booking_id=booking_id))
+
+@app.route("/admin/bookings/<int:booking_id>/delete", methods=["POST"])
+def admin_delete_booking(booking_id):
+    if not is_admin():
+        return redirect(url_for("admin_login"))
     
-    return redirect(url_for("admin_booking_details", booking_id=booking_id))
+    try:
+        with connect() as conn:
+            booking = conn.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+            
+            if not booking:
+                flash("❌ الحجز غير موجود")
+                return redirect(request.referrer or url_for("admin_bookings"))
+            
+            # حذف السجلات المرتبطة
+            conn.execute("DELETE FROM checkins WHERE booking_id = ?", (booking_id,))
+            conn.execute("DELETE FROM admin_actions WHERE booking_id = ?", (booking_id,))
+            
+            # حذف الحجز
+            conn.execute("DELETE FROM bookings WHERE id = ?", (booking_id,))
+            
+            # حذف الصور المرتبطة
+            try:
+                if booking['payment_proof_path'] and os.path.exists(booking['payment_proof_path']):
+                    os.remove(booking['payment_proof_path'])
+                if booking['ticket_image_path'] and os.path.exists(booking['ticket_image_path']):
+                    os.remove(booking['ticket_image_path'])
+            except:
+                pass
+            
+            flash(f"✅ تم حذف الحجز {booking['booking_code']} نهائياً")
+            
+    except Exception as e:
+        print(f"Error deleting booking: {e}")
+        flash(f"❌ حدث خطأ في حذف الحجز: {str(e)}")
+    
+    return redirect(url_for("admin_bookings"))
 
 @app.route("/admin/reports/bookings.csv")
 def export_bookings():
