@@ -2,6 +2,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 from app.config import EVENT_NAME, EVENT_TIME, EVENT_LOCATION
 from app.utils import ticket_label
+from app.constants import TICKET_CONTRIBUTION, PRICE_EXTRA_MEAL, PRICE_PIN_MEDAL
 
 ASSET_LOGO = "assets/logo109.png"
 ASSET_TEMPLATE = "assets/ticket_template.png"
@@ -61,50 +62,65 @@ def create_ticket_image(booking, qr_image_path, out_path):
     body_font = _font(32)        # Arial Bold 32 للنصوص العادية
     small_font = _font(24)       # Arial Bold 24 للنصوص الصغيرة
     
-    y = 320  # بداية الكتابة بعد اللوجو (نزلناها 40 بكسل زيادة عن 280)
+    y = 320  # بداية الكتابة بعد اللوجو
     
-    # العنوان على 3 أسطر - بمسافات واضحة
+    # العنوان على 3 أسطر
     draw.text((600, y), "حفل إفطار وتكريم", fill="#7a5a12", font=title_font1, anchor="mt")
-    y += 100  # مسافة بين السطر الأول والثاني
-    
+    y += 100
     draw.text((600, y), "أسر شهداء الدفعة 109", fill="#7a5a12", font=title_font2, anchor="mt")
-    y += 100  # مسافة أكبر بين السطر الثاني والثالث (زودناها من 85 لـ 100)
-    
+    y += 85
     draw.text((600, y), "كليات ومعاهد عسكرية", fill="#7a5a12", font=title_font2, anchor="mt")
-    y += 120  # مسافة قبل الاسم
+    y += 120
     
-    # اسم الشخص - في النص
+    # اسم الشخص
     draw.text((600, y), f"الاسم: {booking['name']}", fill="black", font=name_font, anchor="mt")
     y += 70
     
-    # نوع التذكرة - في النص
+    # نوع التذكرة
     draw.text((600, y), f"نوع التذكرة: {ticket_label(booking['ticket_type'])}", fill="black", font=body_font, anchor="mt")
     y += 60
     
-    # كود التذكرة - في النص
+    # كود التذكرة
     draw.text((600, y), f"كود التذكرة: {booking['booking_code']}", fill="black", font=body_font, anchor="mt")
     y += 60
     
-    # قيمة التذكرة - في النص
-    draw.text((600, y), f"القيمة: {booking['amount']} جنيه", fill="black", font=body_font, anchor="mt")
-    y += 60
+    # تفاصيل الحضور (للتذاكر العادية فقط)
+    if booking['ticket_type'] != TICKET_CONTRIBUTION:
+        # حساب المبالغ التفصيلية
+        base_amount = 100  # السعر الأساسي من constants
+        extra_people = booking.get('extra_people', 0)
+        extra_cost = extra_people * PRICE_EXTRA_MEAL
+        pin_cost = PRICE_PIN_MEDAL if booking.get('pin_medal', 0) else 0
+        
+        draw.text((600, y), f"القيمة الأساسية: {base_amount} جنيه", fill="black", font=body_font, anchor="mt")
+        y += 50
+        if extra_people > 0:
+            draw.text((600, y), f"أفراد إضافيين: {extra_people} × {PRICE_EXTRA_MEAL} = {extra_cost} جنيه", fill="black", font=body_font, anchor="mt")
+            y += 50
+        if booking.get('pin_medal', 0):
+            draw.text((600, y), f"بروش + ميدالية: {PRICE_PIN_MEDAL} جنيه", fill="black", font=body_font, anchor="mt")
+            y += 50
     
-    # موعد الحفل - في النص
+    # إجمالي المبلغ
+    draw.text((600, y), f"الإجمالي: {booking['amount']} جنيه", fill="#9a7b2f", font=name_font, anchor="mt")
+    y += 70
+    
+    # موعد الحفل
     draw.text((600, y), f"موعد الحفل: {EVENT_TIME}", fill="black", font=body_font, anchor="mt")
     y += 60
     
-    # مكان الحفل - في النص
+    # مكان الحفل
     draw.text((600, y), f"المكان: {EVENT_LOCATION}", fill="black", font=body_font, anchor="mt")
     y += 60
     
-    # QR Code - في النص (أكبر)
+    # QR Code
     if os.path.exists(qr_image_path):
-        qr = Image.open(qr_image_path).convert("RGB").resize((400, 400))  # كبرناها من 350 لـ 400
-        img.paste(qr, ((1200 - 400) // 2, 940))  # عدلنا الموقع عشان النص ما يتغطاش
+        qr = Image.open(qr_image_path).convert("RGB").resize((400, 400))
+        img.paste(qr, ((1200 - 400) // 2, 1000))
     
-    # النص السفلي - في النص
-    draw.text((600, 1400), "التذكرة صالحة لدخول مرة واحدة فقط", fill="#8a0000", font=body_font, anchor="mt")
-    draw.text((600, 1470), "يرجى الاحتفاظ بهذه التذكرة وإبرازها عند الدخول", fill="black", font=small_font, anchor="mt")
+    # النص السفلي
+    draw.text((600, 1480), "التذكرة صالحة لدخول مرة واحدة فقط", fill="#8a0000", font=body_font, anchor="mt")
+    draw.text((600, 1540), "يرجى الاحتفاظ بهذه التذكرة وإبرازها عند الدخول", fill="black", font=small_font, anchor="mt")
     
     # حفظ الصورة
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
