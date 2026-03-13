@@ -91,7 +91,7 @@ def ticket_types_text():
         f"   • تذكرة دخول (للأساسي): {PRICE_BASE_ATTENDANCE} جنيه\n"
         f"   • وجبة (لكل شخص): {PRICE_EXTRA_MEAL} جنيه\n"
         f"   • بروش + ميدالية (اختياري): {PRICE_PIN_MEDAL} جنيه\n\n"
-        f"   مثال: أنت + فرد = 100 + (2×265) = 630 جنيه\n\n"
+        f"   مثال: أنت + فرد = {PRICE_BASE_ATTENDANCE} + (2×{PRICE_EXTRA_MEAL}) = {PRICE_BASE_ATTENDANCE + (2 * PRICE_EXTRA_MEAL)} جنيه\n\n"
         f"2) ❤️ **مساهمة بدون حضور**\n"
         f"   • اكتب المبلغ اللي تحبه"
     )
@@ -172,7 +172,7 @@ def on_extra_people(c):
         # حساب عدد الأفراد الكلي (أساسي + إضافيين)
         total_people = 1 + extra_count
         
-        # حساب المبلغ: تذكرة الأساسي (100) + (عدد الأفراد الكلي × 265)
+        # حساب المبلغ: تذكرة الأساسي (150) + (عدد الأفراد الكلي × 265)
         current_total = data["base_amount"] + (total_people * PRICE_EXTRA_MEAL)
         
         set_session(c.message.chat.id, STATE_ASK_PIN_MEDAL, data)
@@ -239,44 +239,60 @@ def on_payment(c):
         if not session:
             bot.answer_callback_query(c.id, "ابدأ من /start")
             return
+        
         data = session["data"]
         if "name" not in data or "phone" not in data:
             bot.answer_callback_query(c.id, "بيانات غير كاملة، ابدأ من /start")
             return
-            
+        
+        # التحقق من وجود البيانات الإضافية
         extra_people = data.get("extra_people", 0)
         pin_medal = data.get("pin_medal", False)
         
-        booking = create_booking(
-            c.message.chat.id, 
-            data["name"], 
-            data["phone"], 
-            data["ticket_type"], 
-            data["amount"], 
-            payment_method,
-            extra_people,
-            pin_medal
-        )
-        set_session(c.message.chat.id, STATE_WAITING_PAYMENT_PROOF, {"booking_code": booking["booking_code"], "booking_id": booking["id"]})
+        # طباعة للتأكد (لوج)
+        print(f"Creating booking for {data['name']} with amount {data['amount']}")
         
+        # إنشاء الحجز
+        booking = create_booking(
+            chat_id=c.message.chat.id,
+            name=data["name"],
+            phone=data["phone"],
+            ticket_type=data["ticket_type"],
+            amount=data["amount"],
+            payment_method=payment_method,
+            extra_people=extra_people,
+            pin_medal=pin_medal
+        )
+        
+        if not booking:
+            bot.answer_callback_query(c.id, "فشل في إنشاء الحجز")
+            return
+        
+        # حفظ حالة البوت
+        set_session(c.message.chat.id, STATE_WAITING_PAYMENT_PROOF, {
+            "booking_code": booking["booking_code"], 
+            "booking_id": booking["id"]
+        })
+        
+        # رسالة الدفع حسب الطريقة
         if payment_method == PAY_INSTAPAY:
             text = (
-                "الدفع عبر InstaPay\n\n"
-                f"اسم صاحب الحساب\n{ACCOUNT_NAME_AR}\n\n"
-                f"Account Name\n{ACCOUNT_NAME_EN}\n\n"
-                f"رقم الموبايل\n{INSTAPAY_PHONE}\n\n"
-                f"رابط الدفع\n{INSTAPAY_LINK}\n\n"
-                "بعد التحويل برجاء رفع صورة السداد."
+                "💰 **الدفع عبر InstaPay**\n\n"
+                f"👤 اسم الحساب: {ACCOUNT_NAME_AR}\n"
+                f"📞 رقم الموبايل: {INSTAPAY_PHONE}\n"
+                f"🔗 رابط الدفع: {INSTAPAY_LINK}\n\n"
+                "📌 **بعد التحويل، أرسل صورة الإيصال هنا**"
             )
         else:
             text = (
-                "الدفع عبر محفظة إلكترونية\n\n"
-                f"اسم صاحب الحساب\n{ACCOUNT_NAME_AR}\n\n"
-                f"Account Name\n{ACCOUNT_NAME_EN}\n\n"
-                f"رقم الموبايل\n{WALLET_PHONE}\n\n"
-                "بعد التحويل برجاء رفع صورة السداد."
+                "💰 **الدفع عبر محفظة إلكترونية**\n\n"
+                f"👤 اسم الحساب: {ACCOUNT_NAME_AR}\n"
+                f"📞 رقم الموبايل: {WALLET_PHONE}\n\n"
+                "✅ فودافون كاش - أورنج كاش - إتصالات كاش - WE Pay\n\n"
+                "📌 **بعد التحويل، أرسل صورة الإيصال هنا**"
             )
         
+        # رسالة التأكيد الكاملة
         confirm_msg = (
             f"✅ **تم تسجيل طلبك بنجاح**\n\n"
             f"👤 **الاسم:** {data['name']}\n"
@@ -284,10 +300,12 @@ def on_payment(c):
             f"🔢 **رقم الطلب:** {booking['booking_code']}\n\n"
             f"{text}"
         )
+        
         bot.send_message(c.message.chat.id, confirm_msg, reply_markup=main_reply_keyboard())
         bot.answer_callback_query(c.id)
+        
     except Exception as e:
-        print(f"Error in on_payment: {e}")
+        print(f"❌ Error in on_payment: {e}")
         traceback.print_exc()
         bot.answer_callback_query(c.id, "حدث خطأ، حاول مرة أخرى")
 
