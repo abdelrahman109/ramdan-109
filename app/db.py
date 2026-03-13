@@ -64,6 +64,33 @@ def init_db():
             # العمود موجود بالفعل
             pass
         
+        # إنشاء جدول settings للعدادات
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT
+            )
+        ''')
+        
+        # إضافة عداد البروشات المتاحة (200)
+        cursor = conn.execute("SELECT COUNT(*) as count FROM settings WHERE key='total_pin_medal_available'")
+        if cursor.fetchone()['count'] == 0:
+            conn.execute(
+                "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
+                ('total_pin_medal_available', '200', now_str())
+            )
+            print("✅ Initialized pin medal counter with 200")
+        
+        # عداد البروشات المسلمة
+        cursor = conn.execute("SELECT COUNT(*) as count FROM settings WHERE key='total_pin_medal_delivered'")
+        if cursor.fetchone()['count'] == 0:
+            conn.execute(
+                "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
+                ('total_pin_medal_delivered', '0', now_str())
+            )
+            print("✅ Initialized delivered pin medal counter with 0")
+        
         # إنشاء باقي الجداول
         conn.execute('''
             CREATE TABLE IF NOT EXISTS checkins (
