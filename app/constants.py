@@ -1,10 +1,17 @@
-TICKET_FULL = "full_package"
-TICKET_BREAKFAST = "breakfast_only"
-TICKET_CONTRIBUTION = "contribution"
+# أنواع التذاكر
+TICKET_FULL = "full_package"  # حضور
+TICKET_CONTRIBUTION = "contribution"  # مساهمة
 
+# الأسعار الجديدة
+PRICE_BASE_ATTENDANCE = 100  # حضور الحفل (دخول فقط)
+PRICE_EXTRA_MEAL = 265  # وجبة إضافية لكل فرد
+PRICE_PIN_MEDAL = 150  # بروش + ميدالية
+
+# طرق الدفع
 PAY_INSTAPAY = "instapay"
 PAY_WALLET = "wallet"
 
+# حالات الحجز
 STATUS_PENDING_PROOF = "pending_proof"
 STATUS_PENDING_REVIEW = "pending_review"
 STATUS_PAID = "paid"
@@ -12,14 +19,16 @@ STATUS_REJECTED = "rejected"
 STATUS_USED = "used"
 STATUS_CANCELLED = "cancelled"
 
+# التذاكر (للمساهمات)
 TICKETS = {
-    TICKET_FULL: {"label": "حضور الحفل + الإفطار + ميدالية + بروش", "amount": 565, "attending": True},
-    TICKET_BREAKFAST: {"label": "حضور الحفل + إفطار فقط", "amount": 415, "attending": True},
-    TICKET_CONTRIBUTION: {"label": "مساهمة في إفطار أسر الشهداء بدون حضور", "amount": None, "attending": False},
+    TICKET_FULL: {"label": "حضور الحفل", "amount": None, "attending": True},
+    TICKET_CONTRIBUTION: {"label": "مساهمة بدون حضور", "amount": None, "attending": False},
 }
 
-CONTRIBUTION_AMOUNTS = [200, 300, 400, 500, 600, 700, 800, 900, 1000]
+# المساهمات (فاضية لأن المستخدم هيكتب المبلغ)
+CONTRIBUTION_AMOUNTS = []
 
+# أسماء طرق الدفع للعرض
 PAYMENT_METHODS = {
     PAY_INSTAPAY: "InstaPay",
     PAY_WALLET: "محفظة إلكترونية",
