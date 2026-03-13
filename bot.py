@@ -88,10 +88,10 @@ def ticket_types_text():
     return (
         "أنواع التذاكر:\n\n"
         f"1) 🎫 **حضور الحفل**\n"
-        f"   • تذكرة دخول (للأساسي): {PRICE_BASE_ATTENDANCE} جنيه\n"
+        f"   • مساهمة وجبة أسر الشهداء: 150 جنيه\n"
         f"   • وجبة (لكل شخص): {PRICE_EXTRA_MEAL} جنيه\n"
         f"   • بروش + ميدالية (اختياري): {PRICE_PIN_MEDAL} جنيه\n\n"
-        f"   مثال: أنت + فرد = {PRICE_BASE_ATTENDANCE} + (2×{PRICE_EXTRA_MEAL}) = {PRICE_BASE_ATTENDANCE + (2 * PRICE_EXTRA_MEAL)} جنيه\n\n"
+        f"   مثال: أنت + فرد = 150 + (2×{PRICE_EXTRA_MEAL}) = {150 + (2 * PRICE_EXTRA_MEAL)} جنيه\n\n"
         f"2) ❤️ **مساهمة بدون حضور**\n"
         f"   • اكتب المبلغ اللي تحبه"
     )
@@ -139,14 +139,14 @@ def on_ticket(c):
             # حضور
             set_session(c.message.chat.id, STATE_ENTER_EXTRA_PEOPLE, {
                 "ticket_type": ticket_type,
-                "base_amount": PRICE_BASE_ATTENDANCE,
+                "base_amount": 150,  # مساهمة وجبة أسر الشهداء
                 "extra_people": 0,
                 "pin_medal": False
             })
             
             price_info = (
                 f"🎫 **حضور الحفل**\n\n"
-                f"💰 تذكرة دخول (للأساسي): {PRICE_BASE_ATTENDANCE} جنيه\n"
+                f"💰 مساهمة وجبة أسر الشهداء: 150 جنيه\n"
                 f"🍽️ وجبة (لكل شخص): {PRICE_EXTRA_MEAL} جنيه\n"
                 f"🎖️ بروش + ميدالية: {PRICE_PIN_MEDAL} جنيه (اختياري)\n\n"
                 f"**ملاحظة:** كل فرد (أساسي أو إضافي) له وجبة بـ {PRICE_EXTRA_MEAL} جنيه\n"
@@ -172,13 +172,13 @@ def on_extra_people(c):
         # حساب عدد الأفراد الكلي (أساسي + إضافيين)
         total_people = 1 + extra_count
         
-        # حساب المبلغ: تذكرة الأساسي (150) + (عدد الأفراد الكلي × 265)
+        # حساب المبلغ: مساهمة وجبة (150) + (عدد الأفراد الكلي × 265)
         current_total = data["base_amount"] + (total_people * PRICE_EXTRA_MEAL)
         
         set_session(c.message.chat.id, STATE_ASK_PIN_MEDAL, data)
         
         # تفاصيل الحساب
-        details = f"👤 الأساسي: تذكرة {data['base_amount']} جنيه + وجبة {PRICE_EXTRA_MEAL} جنيه"
+        details = f"👤 الأساسي: مساهمة وجبة {data['base_amount']} جنيه + وجبة {PRICE_EXTRA_MEAL} جنيه"
         if extra_count > 0:
             details += f"\n👥 {extra_count} فرد إضافي: {extra_count} × {PRICE_EXTRA_MEAL} = {extra_count * PRICE_EXTRA_MEAL} جنيه"
         
@@ -206,7 +206,7 @@ def on_pin_medal(c):
         # حساب عدد الأفراد الكلي
         total_people = 1 + data["extra_people"]
         
-        # حساب المبلغ النهائي: تذكرة الأساسي + (عدد الأفراد الكلي × 265) + (150 لو اختار)
+        # حساب المبلغ النهائي: مساهمة وجبة + (عدد الأفراد الكلي × 265) + (150 لو اختار)
         total = data["base_amount"] + (total_people * PRICE_EXTRA_MEAL)
         if data["pin_medal"]:
             total += PRICE_PIN_MEDAL
@@ -217,7 +217,7 @@ def on_pin_medal(c):
         # ملخص كامل
         summary = (
             f"✅ **ملخص حجزك:**\n\n"
-            f"👤 الأساسي: تذكرة {data['base_amount']} + وجبة {PRICE_EXTRA_MEAL} = {data['base_amount'] + PRICE_EXTRA_MEAL} جنيه\n"
+            f"👤 الأساسي: مساهمة وجبة {data['base_amount']} + وجبة {PRICE_EXTRA_MEAL} = {data['base_amount'] + PRICE_EXTRA_MEAL} جنيه\n"
         )
         if data["extra_people"] > 0:
             summary += f"👥 {data['extra_people']} فرد إضافي: {data['extra_people']} × {PRICE_EXTRA_MEAL} = {data['extra_people'] * PRICE_EXTRA_MEAL} جنيه\n"
@@ -250,6 +250,7 @@ def on_payment(c):
         pin_medal = data.get("pin_medal", False)
         
         print(f"Creating booking for {data['name']} with amount {data['amount']}")
+        print(f"Extra people: {extra_people}, Pin medal: {pin_medal}")
         
         # إنشاء الحجز
         booking = create_booking(
@@ -368,6 +369,7 @@ def handle_admin_decision(call):
             booking_dict[key] = booking[key]
         
         print(f"📋 Booking found: {booking_dict.get('booking_code', 'unknown')} - {booking_dict.get('name', 'unknown')}")
+        print(f"📋 Extra people: {booking_dict.get('extra_people', 0)}, Pin medal: {booking_dict.get('pin_medal', 0)}")
         
         if action == 'approve':
             # قبول الدفع
