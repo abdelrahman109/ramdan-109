@@ -326,5 +326,57 @@ def api_checkin():
         print(f"Error in checkin: {e}")
         return jsonify({"status": "error", "message": str(e)})
 
+# =============== Scanner API Routes ===============
+@app.route("/api/stats", methods=["GET"])
+def api_stats():
+    """إحصائيات سريعة للماسح"""
+    try:
+        with connect() as conn:
+            total = conn.execute(
+                "SELECT COUNT(*) c FROM bookings WHERE is_attending=1 AND status IN ('paid','used')"
+            ).fetchone()["c"]
+            
+            checked_in = conn.execute(
+                "SELECT COUNT(*) c FROM bookings WHERE is_attending=1 AND status='used'"
+            ).fetchone()["c"]
+            
+        return jsonify({
+            "total": total,
+            "checked_in": checked_in
+        })
+    except Exception as e:
+        print(f"Error in stats: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/recent-scans", methods=["GET"])
+def api_recent_scans():
+    """آخر عمليات المسح"""
+    try:
+        with connect() as conn:
+            scans = conn.execute("""
+                SELECT c.checked_in_at as time, 
+                       b.name,
+                       b.ticket_type,
+                       c.result
+                FROM checkins c
+                JOIN bookings b ON c.booking_id = b.id
+                ORDER BY c.id DESC
+                LIMIT 20
+            """).fetchall()
+            
+        scans_list = []
+        for scan in scans:
+            scans_list.append({
+                "time": scan["time"][5:16] if scan["time"] else "",  # MM-DD HH:MM
+                "name": scan["name"],
+                "ticket_type": ticket_label(scan["ticket_type"]),
+                "result": scan["result"]
+            })
+            
+        return jsonify({"scans": scans_list})
+    except Exception as e:
+        print(f"Error in recent scans: {e}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
