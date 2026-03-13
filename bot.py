@@ -4,7 +4,7 @@ import traceback
 from telebot import types
 
 from app.config import TELEGRAM_BOT_TOKEN, EVENT_NAME, EVENT_TIME, EVENT_PRE_ARRIVAL_TEXT, EVENT_LOCATION, EVENT_MAP, ACCOUNT_NAME_AR, ACCOUNT_NAME_EN, INSTAPAY_PHONE, WALLET_PHONE, INSTAPAY_LINK, ADMIN_CHAT_IDS
-from app.constants import TICKET_FULL, TICKET_BREAKFAST, TICKET_CONTRIBUTION, CONTRIBUTION_AMOUNTS, TICKETS, PAY_INSTAPAY, PAY_WALLET
+from app.constants import TICKET_FULL, TICKET_CONTRIBUTION, PRICE_BASE_ATTENDANCE, PRICE_EXTRA_MEAL, PRICE_PIN_MEDAL, PAY_INSTAPAY, PAY_WALLET
 from app.db import init_db
 from app.utils import normalize_phone, is_valid_phone
 from app.services import set_session, get_session, clear_session, create_booking, update_payment_proof, get_booking_by_code, get_booking_by_id
@@ -20,8 +20,9 @@ bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
 # حالات البوت
 STATE_SELECT_TICKET = "select_ticket"
-STATE_SELECT_CONTRIBUTION_AMOUNT = "select_contribution_amount"
-STATE_ENTER_CONTRIBUTION_AMOUNT = "enter_contribution_amount"  # حالة جديدة لإدخال المبلغ يدوياً
+STATE_ENTER_CONTRIBUTION_AMOUNT = "enter_contribution_amount"
+STATE_ENTER_EXTRA_PEOPLE = "enter_extra_people"  # عدد الأفراد الإضافيين
+STATE_ASK_PIN_MEDAL = "ask_pin_medal"  # هل يريد بروش وميدالية؟
 STATE_ENTER_NAME = "enter_name"
 STATE_ENTER_PHONE = "enter_phone"
 STATE_WAITING_PAYMENT_PROOF = "waiting_payment_proof"
@@ -35,9 +36,30 @@ def main_reply_keyboard():
 
 def ticket_inline_keyboard():
     kb = types.InlineKeyboardMarkup()
-    kb.row(types.InlineKeyboardButton("حضور + إفطار + ميدالية + بروش — 565", callback_data=f"ticket:{TICKET_FULL}"))
-    kb.row(types.InlineKeyboardButton("حضور + إفطار فقط — 415", callback_data=f"ticket:{TICKET_BREAKFAST}"))
-    kb.row(types.InlineKeyboardButton("مساهمة بدون حضور ❤️", callback_data=f"ticket:{TICKET_CONTRIBUTION}"))
+    kb.row(types.InlineKeyboardButton("🎫 حضور الحفل", callback_data=f"ticket:{TICKET_FULL}"))
+    kb.row(types.InlineKeyboardButton("❤️ مساهمة بدون حضور", callback_data=f"ticket:{TICKET_CONTRIBUTION}"))
+    return kb
+
+def extra_people_keyboard():
+    """كيبورد اختيار عدد الأفراد الإضافيين"""
+    kb = types.InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        types.InlineKeyboardButton("👤 أنا فقط", callback_data="extra:0"),
+        types.InlineKeyboardButton("👥 +1 فرد", callback_data="extra:1"),
+        types.InlineKeyboardButton("👥 +2 فرد", callback_data="extra:2"),
+        types.InlineKeyboardButton("👥 +3 فرد", callback_data="extra:3"),
+        types.InlineKeyboardButton("👥 +4 فرد", callback_data="extra:4"),
+        types.InlineKeyboardButton("👥 +5 فرد", callback_data="extra:5"),
+    )
+    return kb
+
+def pin_medal_keyboard():
+    """كيبورد اختيار البروش والميدالية"""
+    kb = types.InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        types.InlineKeyboardButton(f"✅ نعم (+{PRICE_PIN_MEDAL} جنيه)", callback_data="pin:yes"),
+        types.InlineKeyboardButton("❌ لا", callback_data="pin:no"),
+    )
     return kb
 
 def payment_method_keyboard():
@@ -46,6 +68,7 @@ def payment_method_keyboard():
     kb.row(types.InlineKeyboardButton("محفظة إلكترونية", callback_data=f"pay:{PAY_WALLET}"))
     return kb
 
+# =============== نصوص ===============
 def event_info_text():
     return f"🎟 {EVENT_NAME}\n\n🕠 الموعد: {EVENT_TIME}\n⏰ {EVENT_PRE_ARRIVAL_TEXT}\n\n📍 المكان: {EVENT_LOCATION}\n{EVENT_MAP}"
 
@@ -62,7 +85,15 @@ def payment_info_text():
     )
 
 def ticket_types_text():
-    return "أنواع التذاكر\n\n1) حضور الحفل + الإفطار + ميدالية + بروش — 565\n2) حضور الحفل + إفطار فقط — 415\n3) مساهمة بدون حضور ❤️ (اكتب المبلغ اللي تحبه)"
+    return (
+        "أنواع التذاكر:\n\n"
+        f"1) 🎫 حضور الحفل\n"
+        f"   • القاعدة الأساسية: {PRICE_BASE_ATTENDANCE} جنيه\n"
+        f"   • كل فرد إضافي: {PRICE_EXTRA_MEAL} جنيه (وجبة)\n"
+        f"   • بروش + ميدالية: {PRICE_PIN_MEDAL} جنيه\n\n"
+        f"2) ❤️ مساهمة بدون حضور\n"
+        f"   • اكتب المبلغ اللي تحبه"
+    )
 
 # =============== معالجات البوت ===============
 @bot.message_handler(commands=["start"])
@@ -100,19 +131,88 @@ def on_ticket(c):
         ticket_type = c.data.split(":", 1)[1]
         
         if ticket_type == TICKET_CONTRIBUTION:
-            # المساهمة - نطلب إدخال المبلغ يدوياً
+            # مساهمة - نطلب إدخال المبلغ يدوياً
             set_session(c.message.chat.id, STATE_ENTER_CONTRIBUTION_AMOUNT, {"ticket_type": ticket_type})
-            bot.send_message(c.message.chat.id, "❤️ **مساهمة بدون حضور**\n\nاكتب قيمة المساهمة التي تريدها (مثلاً: 250 أو 750 أو أي مبلغ تحبه):", reply_markup=main_reply_keyboard())
+            bot.send_message(c.message.chat.id, "❤️ **مساهمة بدون حضور**\n\nاكتب قيمة المساهمة التي تريدها (مثلاً: 250 أو 750):", reply_markup=main_reply_keyboard())
         else:
-            # حضور - المبلغ ثابت
-            set_session(c.message.chat.id, STATE_ENTER_NAME, {"ticket_type": ticket_type, "amount": TICKETS[ticket_type]["amount"]})
-            bot.send_message(c.message.chat.id, "اكتب الاسم الكامل", reply_markup=main_reply_keyboard())
+            # حضور - نبدأ بالأسئلة
+            set_session(c.message.chat.id, STATE_ENTER_EXTRA_PEOPLE, {
+                "ticket_type": ticket_type,
+                "base_amount": PRICE_BASE_ATTENDANCE,
+                "extra_people": 0,
+                "pin_medal": False
+            })
+            
+            # شرح الأسعار
+            price_info = (
+                f"🎫 **حضور الحفل**\n\n"
+                f"💰 القاعدة الأساسية: {PRICE_BASE_ATTENDANCE} جنيه (دخول الحفل)\n"
+                f"🍽️ كل فرد إضافي: {PRICE_EXTRA_MEAL} جنيه (وجبة)\n"
+                f"🎖️ بروش + ميدالية: {PRICE_PIN_MEDAL} جنيه\n\n"
+                f"الآن اختر عدد الأفراد الإضافيين (غيرك):"
+            )
+            bot.send_message(c.message.chat.id, price_info, reply_markup=extra_people_keyboard())
         
         bot.answer_callback_query(c.id)
     except Exception as e:
         print(f"Error in on_ticket: {e}")
         traceback.print_exc()
         bot.answer_callback_query(c.id, "حدث خطأ، حاول مرة أخرى")
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("extra:"))
+def on_extra_people(c):
+    try:
+        extra_count = int(c.data.split(":", 1)[1])
+        session = get_session(c.message.chat.id)
+        data = session["data"]
+        data["extra_people"] = extra_count
+        
+        # حساب المبلغ الحالي
+        current_total = data["base_amount"] + (extra_count * PRICE_EXTRA_MEAL)
+        
+        set_session(c.message.chat.id, STATE_ASK_PIN_MEDAL, data)
+        
+        msg = (
+            f"👥 الأفراد الإضافيين: {extra_count}\n"
+            f"💰 المبلغ الحالي: {current_total} جنيه\n\n"
+            f"هل تريد إضافة البروش والميدالية (بـ {PRICE_PIN_MEDAL} جنيه)؟"
+        )
+        bot.send_message(c.message.chat.id, msg, reply_markup=pin_medal_keyboard())
+        bot.answer_callback_query(c.id)
+    except Exception as e:
+        print(f"Error in on_extra_people: {e}")
+        traceback.print_exc()
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("pin:"))
+def on_pin_medal(c):
+    try:
+        pin_choice = c.data.split(":", 1)[1]
+        session = get_session(c.message.chat.id)
+        data = session["data"]
+        
+        data["pin_medal"] = (pin_choice == "yes")
+        
+        # حساب المبلغ النهائي
+        total = data["base_amount"] + (data["extra_people"] * PRICE_EXTRA_MEAL)
+        if data["pin_medal"]:
+            total += PRICE_PIN_MEDAL
+        data["amount"] = total
+        
+        set_session(c.message.chat.id, STATE_ENTER_NAME, data)
+        
+        summary = (
+            f"✅ **ملخص حجزك:**\n\n"
+            f"👤 الحضور الأساسي: {data['base_amount']} جنيه\n"
+            f"👥 أفراد إضافيين: {data['extra_people']} × {PRICE_EXTRA_MEAL} = {data['extra_people'] * PRICE_EXTRA_MEAL} جنيه\n"
+            f"🎖️ بروش + ميدالية: {'150 جنيه' if data['pin_medal'] else '0 جنيه'}\n"
+            f"💰 **الإجمالي: {total} جنيه**\n\n"
+            f"الآن اكتب الاسم الكامل (رباعي):"
+        )
+        bot.send_message(c.message.chat.id, summary, reply_markup=main_reply_keyboard())
+        bot.answer_callback_query(c.id)
+    except Exception as e:
+        print(f"Error in on_pin_medal: {e}")
+        traceback.print_exc()
 
 @bot.callback_query_handler(func=lambda c: c.data.startswith("pay:"))
 def on_payment(c):
@@ -127,7 +227,20 @@ def on_payment(c):
             bot.answer_callback_query(c.id, "بيانات غير كاملة، ابدأ من /start")
             return
             
-        booking = create_booking(c.message.chat.id, data["name"], data["phone"], data["ticket_type"], data["amount"], payment_method)
+        # التحقق من وجود البيانات الإضافية للحضور
+        extra_people = data.get("extra_people", 0)
+        pin_medal = data.get("pin_medal", False)
+        
+        booking = create_booking(
+            c.message.chat.id, 
+            data["name"], 
+            data["phone"], 
+            data["ticket_type"], 
+            data["amount"], 
+            payment_method,
+            extra_people,
+            pin_medal
+        )
         set_session(c.message.chat.id, STATE_WAITING_PAYMENT_PROOF, {"booking_code": booking["booking_code"], "booking_id": booking["id"]})
         
         if payment_method == PAY_INSTAPAY:
@@ -147,7 +260,16 @@ def on_payment(c):
                 f"رقم الموبايل\n{WALLET_PHONE}\n\n"
                 "بعد التحويل برجاء رفع صورة السداد."
             )
-        bot.send_message(c.message.chat.id, f"تم تسجيل طلبك برقم: {booking['booking_code']}\n\n{text}", reply_markup=main_reply_keyboard())
+        
+        # رسالة تأكيد الطلب مع الاسم والمبلغ
+        confirm_msg = (
+            f"✅ **تم تسجيل طلبك بنجاح**\n\n"
+            f"👤 **الاسم:** {data['name']}\n"
+            f"💰 **المبلغ المطلوب:** {data['amount']} جنيه\n"
+            f"🔢 **رقم الطلب:** {booking['booking_code']}\n\n"
+            f"{text}"
+        )
+        bot.send_message(c.message.chat.id, confirm_msg, reply_markup=main_reply_keyboard())
         bot.answer_callback_query(c.id)
     except Exception as e:
         print(f"Error in on_payment: {e}")
@@ -286,7 +408,7 @@ def on_text(message):
                 # حفظ المبلغ والانتقال لطلب الاسم
                 data["amount"] = amount
                 set_session(message.chat.id, STATE_ENTER_NAME, data)
-                bot.reply_to(message, f"❤️ تم اختيار مساهمة بقيمة **{amount} جنيه**\n\nالآن اكتب الاسم الكامل:", reply_markup=main_reply_keyboard())
+                bot.reply_to(message, f"❤️ تم اختيار مساهمة بقيمة **{amount} جنيه**\n\nالآن اكتب الاسم الكامل (رباعي):", reply_markup=main_reply_keyboard())
                 return
                 
             except ValueError:
@@ -295,7 +417,7 @@ def on_text(message):
         
         elif state == STATE_ENTER_NAME:
             if not message.text or len(message.text.strip()) < 3:
-                bot.reply_to(message, "الاسم قصير جداً، اكتب الاسم كاملاً", reply_markup=main_reply_keyboard())
+                bot.reply_to(message, "الاسم قصير جداً، اكتب الاسم الكامل (رباعي)", reply_markup=main_reply_keyboard())
                 return
             data["name"] = message.text.strip()
             set_session(message.chat.id, STATE_ENTER_PHONE, data)
