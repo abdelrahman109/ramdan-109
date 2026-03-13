@@ -55,21 +55,23 @@ def create_ticket_image(booking, qr_image_path, out_path):
         img.paste(logo, ((1200 - logo.width) // 2, 40), logo)
     
     # تحديد الأحجام - كلها Arial Bold
-    title_font1 = _font(60)      # Arial Bold 60 للسطر الأول (أكبر)
-    title_font2 = _font(60)      # Arial Bold 60 للسطر الثاني (أكبر)
+    title_font1 = _font(60)      # Arial Bold 60 للسطر الأول
+    title_font2 = _font(60)      # Arial Bold 60 للسطر الثاني
     name_font = _font(36)        # Arial Bold 36 للاسم
     body_font = _font(32)        # Arial Bold 32 للنصوص العادية
     small_font = _font(24)       # Arial Bold 24 للنصوص الصغيرة
     
-    y = 280  # بداية الكتابة بعد اللوجو
+    y = 320  # بداية الكتابة بعد اللوجو (نزلناها 40 بكسل زيادة عن 280)
     
     # العنوان على 3 أسطر - بمسافات واضحة
     draw.text((600, y), "حفل إفطار وتكريم", fill="#7a5a12", font=title_font1, anchor="mt")
-    y += 100  # مسافة أكبر بين السطر الأول والثاني
+    y += 100  # مسافة بين السطر الأول والثاني
+    
     draw.text((600, y), "أسر شهداء الدفعة 109", fill="#7a5a12", font=title_font2, anchor="mt")
-    y += 85   # مسافة بين السطر الثاني والثالث
+    y += 100  # مسافة أكبر بين السطر الثاني والثالث (زودناها من 85 لـ 100)
+    
     draw.text((600, y), "كليات ومعاهد عسكرية", fill="#7a5a12", font=title_font2, anchor="mt")
-    y += 120  # مسافة أكبر قبل الاسم
+    y += 120  # مسافة قبل الاسم
     
     # اسم الشخص - في النص
     draw.text((600, y), f"الاسم: {booking['name']}", fill="black", font=name_font, anchor="mt")
@@ -95,14 +97,14 @@ def create_ticket_image(booking, qr_image_path, out_path):
     draw.text((600, y), f"المكان: {EVENT_LOCATION}", fill="black", font=body_font, anchor="mt")
     y += 60
     
-    # QR Code - في النص
+    # QR Code - في النص (أكبر)
     if os.path.exists(qr_image_path):
-        qr = Image.open(qr_image_path).convert("RGB").resize((350, 350))
-        img.paste(qr, ((1200 - 350) // 2, 960))
+        qr = Image.open(qr_image_path).convert("RGB").resize((400, 400))  # كبرناها من 350 لـ 400
+        img.paste(qr, ((1200 - 400) // 2, 940))  # عدلنا الموقع عشان النص ما يتغطاش
     
     # النص السفلي - في النص
-    draw.text((600, 1380), "التذكرة صالحة لدخول مرة واحدة فقط", fill="#8a0000", font=body_font, anchor="mt")
-    draw.text((600, 1450), "يرجى الاحتفاظ بهذه التذكرة وإبرازها عند الدخول", fill="black", font=small_font, anchor="mt")
+    draw.text((600, 1400), "التذكرة صالحة لدخول مرة واحدة فقط", fill="#8a0000", font=body_font, anchor="mt")
+    draw.text((600, 1470), "يرجى الاحتفاظ بهذه التذكرة وإبرازها عند الدخول", fill="black", font=small_font, anchor="mt")
     
     # حفظ الصورة
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
