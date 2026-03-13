@@ -22,7 +22,19 @@
     <div style="background: #f8f9ff; padding: 20px; border-radius: 15px;">
       <h3 style="color: #764ba2; margin-bottom: 20px;">🎫 معلومات التذكرة</h3>
       <p><strong>🎫 نوع التذكرة:</strong> {{ ticket_label(booking.ticket_type) }}</p>
-      <p><strong>💰 المبلغ:</strong> <span style="color: #28a745; font-weight: bold; font-size: 1.2rem;">{{ booking.amount }} جنيه</span></p>
+      
+      {% if booking.ticket_type == 'full_package' %}
+        <!-- تفاصيل الحضور -->
+        <p><strong>💰 السعر الأساسي:</strong> 100 جنيه</p>
+        {% if booking.extra_people and booking.extra_people > 0 %}
+          <p><strong>👥 أفراد إضافيين:</strong> {{ booking.extra_people }} فرد × 265 = {{ booking.extra_people * 265 }} جنيه</p>
+        {% endif %}
+        {% if booking.pin_medal and booking.pin_medal == 1 %}
+          <p><strong>🎖️ بروش + ميدالية:</strong> 150 جنيه</p>
+        {% endif %}
+      {% endif %}
+      
+      <p><strong>💰 المبلغ الإجمالي:</strong> <span style="color: #28a745; font-weight: bold; font-size: 1.2rem;">{{ booking.amount }} جنيه</span></p>
       <p><strong>💳 طريقة الدفع:</strong> 
         {% if booking.payment_method == 'instapay' %}
           <span style="color: #0057e7; font-weight: bold;">InstaPay</span>
@@ -110,7 +122,7 @@
     {% endif %}
   </div>
   
-  <!-- الإجراءات الإدارية (إلغاء وحذف) -->
+  <!-- الإجراءات الإدارية -->
   <div style="margin-top: 40px; border-top: 2px dashed #dc3545; padding-top: 30px;">
     <h3 style="color: #dc3545; margin-bottom: 20px;">⚠️ الإجراءات الإدارية</h3>
     
