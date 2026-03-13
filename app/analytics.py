@@ -46,6 +46,24 @@ def dashboard_stats():
         wallet_contributions = conn.execute(
             "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='wallet' AND is_attending=0 AND status IN ('paid','used')"
         ).fetchone()["s"]
+        
+        # =============== إحصائيات جديدة (المطلوبة) ===============
+        
+        # إجمالي عدد الضيوف الإضافيين (extra_people)
+        total_extra_people = conn.execute(
+            "SELECT COALESCE(SUM(extra_people),0) s FROM bookings WHERE is_attending=1 AND status IN ('paid','used')"
+        ).fetchone()["s"]
+        
+        # إجمالي عدد البروشات والميداليات المطلوبة
+        total_pin_medal = conn.execute(
+            "SELECT COUNT(*) c FROM bookings WHERE is_attending=1 AND pin_medal=1 AND status IN ('paid','used')"
+        ).fetchone()["c"]
+        
+        # إجمالي عدد الضيوف الكلي (الأساسي + الإضافيين)
+        total_guests = attendees + total_extra_people
+        
+        # تعديل السعة المتبقية بناءً على إجمالي الضيوف
+        remaining_capacity = max(EVENT_CAPACITY - total_guests, 0)
 
     return {
         # أساسيات
@@ -56,7 +74,7 @@ def dashboard_stats():
         "attendees": attendees,
         "contributors": contributors,
         "revenue": revenue,
-        "remaining": max(EVENT_CAPACITY - attendees, 0),
+        "remaining": remaining_capacity,  # تم التعديل لاستخدام total_guests
         "latest": latest,
         
         # إحصائيات InstaPay كاملة
@@ -70,4 +88,9 @@ def dashboard_stats():
         "wallet_count": wallet_count,
         "wallet_attendees": wallet_attendees,
         "wallet_contributions": wallet_contributions,
+        
+        # =============== الإحصائيات الجديدة ===============
+        "total_extra_people": total_extra_people,    # إجمالي الضيوف الإضافيين
+        "total_pin_medal": total_pin_medal,          # إجمالي البروشات المطلوبة
+        "total_guests": total_guests,                 # إجمالي الضيوف الكلي
     }
