@@ -2,8 +2,8 @@
 TICKET_FULL = "full_package"  # حضور
 TICKET_CONTRIBUTION = "contribution"  # مساهمة
 
-# الأسعار الجديدة
-PRICE_BASE_ATTENDANCE = 150  # حضور الحفل (دخول فقط)
+# الأسعار
+PRICE_BASE_ATTENDANCE = 150  # مساهمة وجبة أسر الشهداء
 PRICE_EXTRA_MEAL = 265  # وجبة إضافية لكل فرد
 PRICE_PIN_MEDAL = 150  # بروش + ميدالية
 
