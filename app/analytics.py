@@ -23,16 +23,29 @@ def dashboard_stats():
         # آخر الحجوزات
         latest = conn.execute("SELECT * FROM bookings ORDER BY id DESC LIMIT 10").fetchall()
         
-        # =============== إحصائيات InstaPay (مفصلة) ===============
+        # =============== إحصائيات InstaPay ===============
+        # عدد العمليات
         instapay_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='instapay' AND status IN ('paid','used')"
         ).fetchone()["c"]
         
-        instapay_attendees = conn.execute(
+        # قيمة الحضور
+        instapay_attendees_value = conn.execute(
+            "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='instapay' AND is_attending=1 AND status IN ('paid','used')"
+        ).fetchone()["s"]
+        
+        # قيمة المساهمات
+        instapay_contributions_value = conn.execute(
+            "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='instapay' AND is_attending=0 AND status IN ('paid','used')"
+        ).fetchone()["s"]
+        
+        # عدد الحضور (للعرض فقط)
+        instapay_attendees_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='instapay' AND is_attending=1 AND status IN ('paid','used')"
         ).fetchone()["c"]
         
-        instapay_contributions = conn.execute(
+        # عدد المساهمات (للعرض فقط)
+        instapay_contributions_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='instapay' AND is_attending=0 AND status IN ('paid','used')"
         ).fetchone()["c"]
         
@@ -40,16 +53,29 @@ def dashboard_stats():
             "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='instapay' AND status IN ('paid','used')"
         ).fetchone()["s"]
         
-        # =============== إحصائيات المحفظة (مفصلة) ===============
+        # =============== إحصائيات المحفظة ===============
+        # عدد العمليات
         wallet_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='wallet' AND status IN ('paid','used')"
         ).fetchone()["c"]
         
-        wallet_attendees = conn.execute(
+        # قيمة الحضور
+        wallet_attendees_value = conn.execute(
+            "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='wallet' AND is_attending=1 AND status IN ('paid','used')"
+        ).fetchone()["s"]
+        
+        # قيمة المساهمات
+        wallet_contributions_value = conn.execute(
+            "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='wallet' AND is_attending=0 AND status IN ('paid','used')"
+        ).fetchone()["s"]
+        
+        # عدد الحضور (للعرض فقط)
+        wallet_attendees_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='wallet' AND is_attending=1 AND status IN ('paid','used')"
         ).fetchone()["c"]
         
-        wallet_contributions = conn.execute(
+        # عدد المساهمات (للعرض فقط)
+        wallet_contributions_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='wallet' AND is_attending=0 AND status IN ('paid','used')"
         ).fetchone()["c"]
         
@@ -94,23 +120,27 @@ def dashboard_stats():
         "remaining": remaining_capacity,
         "latest": latest,
         
-        # =============== إحصائيات InstaPay مفصلة ===============
+        # =============== إحصائيات InstaPay ===============
         "instapay": {
-            "count": instapay_count,
-            "attendees": instapay_attendees,
-            "contributions": instapay_contributions,
-            "total": instapay_total
+            "count": instapay_count,                          # عدد العمليات (حصر)
+            "attendees_value": instapay_attendees_value,      # قيمة الحضور (بالجنيه)
+            "contributions_value": instapay_contributions_value, # قيمة المساهمات (بالجنيه)
+            "attendees_count": instapay_attendees_count,      # عدد الحضور (للعرض)
+            "contributions_count": instapay_contributions_count, # عدد المساهمات (للعرض)
+            "total": instapay_total                            # الإجمالي الكلي
         },
         
-        # =============== إحصائيات المحفظة مفصلة ===============
+        # =============== إحصائيات المحفظة ===============
         "wallet": {
-            "count": wallet_count,
-            "attendees": wallet_attendees,
-            "contributions": wallet_contributions,
-            "total": wallet_total
+            "count": wallet_count,                             # عدد العمليات (حصر)
+            "attendees_value": wallet_attendees_value,         # قيمة الحضور (بالجنيه)
+            "contributions_value": wallet_contributions_value, # قيمة المساهمات (بالجنيه)
+            "attendees_count": wallet_attendees_count,         # عدد الحضور (للعرض)
+            "contributions_count": wallet_contributions_count, # عدد المساهمات (للعرض)
+            "total": wallet_total                               # الإجمالي الكلي
         },
         
-        # =============== إحصائيات الضيوف والبروش مفصلة ===============
+        # =============== إحصائيات الضيوف والبروش ===============
         "guests": {
             "total_guests": total_guests,
             "attendees": attendees,
