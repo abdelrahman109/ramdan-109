@@ -19,7 +19,7 @@
         margin: 0 auto;
     }
     
-    /* Stats Dashboard - مصغر للموبايل */
+    /* Stats Dashboard */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -52,6 +52,11 @@
         color: white;
     }
     
+    .stat-card.pin {
+        background: linear-gradient(135deg, #9a7b2f 0%, #d9b96d 100%);
+        color: white;
+    }
+    
     .stat-icon {
         font-size: 1.5rem;
         margin-bottom: 3px;
@@ -66,6 +71,12 @@
     .stat-value {
         font-size: 1.5rem;
         font-weight: bold;
+    }
+    
+    .stat-sub {
+        font-size: 0.7rem;
+        opacity: 0.8;
+        margin-top: 2px;
     }
     
     /* Scanner Section */
@@ -195,6 +206,10 @@
         text-align: center;
     }
     
+    .result-details p {
+        margin: 5px 0;
+    }
+    
     .result-badge {
         display: inline-block;
         padding: 8px 20px;
@@ -234,6 +249,7 @@
         color: white;
         padding: 8px 5px;
         font-size: 0.85rem;
+        text-align: right;
     }
     
     .scans-table td {
@@ -274,23 +290,45 @@
     <div class="stats-grid" id="statsDashboard">
         <div class="stat-card primary">
             <div class="stat-icon">🎟</div>
-            <div class="stat-label">الحضور</div>
+            <div class="stat-label">إجمالي الحضور</div>
             <div class="stat-value" id="totalAttendees">0</div>
         </div>
         <div class="stat-card success">
             <div class="stat-icon">✅</div>
-            <div class="stat-label">دخل</div>
+            <div class="stat-label">تم الدخول</div>
             <div class="stat-value" id="checkedIn">0</div>
         </div>
         <div class="stat-card warning">
             <div class="stat-icon">⏳</div>
-            <div class="stat-label">متبقي</div>
+            <div class="stat-label">المتبقي</div>
             <div class="stat-value" id="remaining">0</div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">📊</div>
-            <div class="stat-label">نسبة</div>
+            <div class="stat-label">نسبة الدخول</div>
             <div class="stat-value" id="percentage">0%</div>
+        </div>
+        <!-- إحصائيات الضيوف الإجمالية -->
+        <div class="stat-card primary" style="grid-column: span 2;">
+            <div class="stat-icon">👥</div>
+            <div class="stat-label">إجمالي الضيوف</div>
+            <div class="stat-value" id="totalGuests">0</div>
+            <div class="stat-sub">(أساسي + إضافيين)</div>
+        </div>
+        <!-- إحصائيات البروش -->
+        <div class="stat-card pin" style="grid-column: span 2;">
+            <div class="stat-icon">🎖️</div>
+            <div class="stat-label">بروش + ميدالية</div>
+            <div style="display: flex; justify-content: space-around; margin-top: 5px;">
+                <div>
+                    <div class="stat-value" id="pinDelivered">0</div>
+                    <div class="stat-sub">تم التسليم</div>
+                </div>
+                <div>
+                    <div class="stat-value" id="pinRemaining">200</div>
+                    <div class="stat-sub">متبقي</div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -323,19 +361,21 @@
     <div class="recent-scans">
         <div class="recent-title">
             <span>📋</span>
-            <span>آخر العمليات</span>
+            <span>آخر عمليات المسح</span>
         </div>
         <table class="scans-table">
             <thead>
                 <tr>
                     <th>الوقت</th>
                     <th>الاسم</th>
+                    <th>النوع</th>
+                    <th>بروش</th>
                     <th>النتيجة</th>
                 </tr>
             </thead>
             <tbody id="recentScansList">
                 <tr>
-                    <td colspan="3" style="text-align: center; padding: 10px;">جاري التحميل...</td>
+                    <td colspan="5" style="text-align: center; padding: 10px;">جاري التحميل...</td>
                 </tr>
             </tbody>
         </table>
@@ -350,15 +390,69 @@
     let isScanning = false;
     
     // Auto-refresh stats
-    setInterval(refreshStats, 30000);
+    setInterval(refreshAllStats, 30000);
     
     // Load initial data and start scanner automatically
     document.addEventListener('DOMContentLoaded', function() {
-        refreshStats();
+        refreshAllStats();
         loadRecentScans();
         // Start scanner automatically when page loads
         setTimeout(startScanner, 500);
     });
+    
+    // Refresh all statistics
+    async function refreshAllStats() {
+        await refreshStats();
+        await refreshGuestStats();
+        await refreshPinStats();
+    }
+    
+    // Refresh basic stats
+    async function refreshStats() {
+        try {
+            let response = await fetch('/api/stats');
+            let data = await response.json();
+            
+            document.getElementById('totalAttendees').innerText = data.total || 0;
+            document.getElementById('checkedIn').innerText = data.checked_in || 0;
+            
+            let remaining = (data.total || 0) - (data.checked_in || 0);
+            document.getElementById('remaining').innerText = remaining < 0 ? 0 : remaining;
+            
+            let percentage = data.total > 0 ? Math.round((data.checked_in / data.total) * 100) : 0;
+            document.getElementById('percentage').innerText = percentage + '%';
+            
+        } catch (error) {
+            console.log('Error refreshing stats:', error);
+        }
+    }
+    
+    // Refresh guest stats
+    async function refreshGuestStats() {
+        try {
+            let response = await fetch('/api/guest-stats');
+            let data = await response.json();
+            
+            document.getElementById('totalGuests').innerText = data.total_guests || 0;
+            
+        } catch (error) {
+            console.log('Error refreshing guest stats:', error);
+        }
+    }
+    
+    // Refresh pin medal stats
+    async function refreshPinStats() {
+        try {
+            let response = await fetch('/api/pin-stats');
+            let data = await response.json();
+            
+            document.getElementById('pinDelivered').innerText = data.delivered || 0;
+            document.getElementById('pinRemaining').innerText = data.remaining || 0;
+            
+        } catch (error) {
+            console.log('Error refreshing pin stats:', error);
+        }
+    }
     
     // الأصوات المختلفة للنتائج
     function playSound(type) {
@@ -562,18 +656,19 @@
                 showResult('success', '✅', 'دخول مسموح', 
                     `<p><strong>${data.name || ''}</strong></p>
                      <p>${data.ticket_type || ''}</p>
+                     ${data.has_pin_medal ? '<p>🎖️ بروش + ميدالية</p>' : ''}
                      <span class="result-badge" style="background: #28a745; color: white;">✓ تم تسجيل الدخول</span>`);
-                refreshStats();
+                refreshAllStats();
                 loadRecentScans();
             } else if (data.status === 'already_used') {
                 showResult('warning', '⚠️', 'مستخدمة مسبقاً', 
                     `<p><strong>${data.name || ''}</strong></p>
                      <span class="result-badge" style="background: #ffc107; color: black;">⏱ دخل من قبل</span>`);
-                refreshStats();
+                refreshAllStats();
                 loadRecentScans();
             } else if (data.status === 'unpaid') {
                 showResult('warning', '⚠️', 'غير مدفوعة', 
-                    `<p>هذه التذكرة لم يتم دفعها</p>`);
+                    `<p>هذه التذكرة لم يتم دفعها بعد</p>`);
             } else {
                 showResult('error', '❌', 'غير صالحة', 
                     `<p>${data.message || 'رمز غير صالح'}</p>`);
@@ -610,33 +705,6 @@
         }
     }
     
-    // Clear result
-    function clearResult() {
-        document.getElementById('result').style.display = 'none';
-        document.getElementById('manualToken').value = '';
-        lastResult = null;
-    }
-    
-    // Refresh stats
-    async function refreshStats() {
-        try {
-            let response = await fetch('/api/stats');
-            let data = await response.json();
-            
-            document.getElementById('totalAttendees').innerText = data.total || 0;
-            document.getElementById('checkedIn').innerText = data.checked_in || 0;
-            
-            let remaining = (data.total || 0) - (data.checked_in || 0);
-            document.getElementById('remaining').innerText = remaining < 0 ? 0 : remaining;
-            
-            let percentage = data.total > 0 ? Math.round((data.checked_in / data.total) * 100) : 0;
-            document.getElementById('percentage').innerText = percentage + '%';
-            
-        } catch (error) {
-            console.log('Error refreshing stats:', error);
-        }
-    }
-    
     // Load recent scans
     async function loadRecentScans() {
         try {
@@ -651,16 +719,19 @@
                                     (scan.result === 'already_used' ? 'warning' : 'error');
                     let statusText = scan.result === 'success' ? '✓' : 
                                     (scan.result === 'already_used' ? '⚠️' : '✗');
+                    let pinIcon = scan.has_pin_medal ? '🎖️' : '';
                     
                     html += `<tr>
                         <td>${scan.time?.substring(5, 16) || ''}</td>
                         <td>${scan.name?.substring(0, 12) || ''}</td>
+                        <td>${scan.ticket_type || ''}</td>
+                        <td>${pinIcon}</td>
                         <td><span class="scan-badge ${statusClass}">${statusText}</span></td>
                     </tr>`;
                 });
                 list.innerHTML = html;
             } else {
-                list.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 10px;">لا توجد عمليات</td></tr>';
+                list.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 10px;">لا توجد عمليات مسح</td></tr>';
             }
         } catch (error) {
             console.log('Error loading scans:', error);
