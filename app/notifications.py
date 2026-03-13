@@ -10,7 +10,6 @@ def notify_admin_new_proof(booking):
     if not _bot:
         return
     
-    # نص الرسالة
     caption = (
         f"📌 طلب دفع جديد\n\n"
         f"👤 الاسم: {booking['name']}\n"
@@ -22,24 +21,17 @@ def notify_admin_new_proof(booking):
         f"رابط المراجعة: {BASE_URL}/admin/bookings/{booking['id']}"
     )
     
-    # أزرار القبول والرفض
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
     btn_approve = telebot.types.InlineKeyboardButton("✅ قبول", callback_data=f"approve_{booking['id']}")
     btn_reject = telebot.types.InlineKeyboardButton("❌ رفض", callback_data=f"reject_{booking['id']}")
     btn_review = telebot.types.InlineKeyboardButton("🔍 مراجعة", url=f"{BASE_URL}/admin/bookings/{booking['id']}")
     markup.add(btn_approve, btn_reject, btn_review)
     
-    # إرسال الصورة مع الأزرار لكل أدمن
     for admin_chat_id in ADMIN_CHAT_IDS:
         try:
             if booking['payment_proof_path'] and os.path.exists(booking['payment_proof_path']):
                 with open(booking['payment_proof_path'], 'rb') as photo:
-                    _bot.send_photo(
-                        admin_chat_id,
-                        photo,
-                        caption=caption,
-                        reply_markup=markup
-                    )
+                    _bot.send_photo(admin_chat_id, photo, caption=caption, reply_markup=markup)
             else:
                 _bot.send_message(admin_chat_id, caption + "\n\n⚠️ لا توجد صورة إيصال", reply_markup=markup)
         except Exception as e:
