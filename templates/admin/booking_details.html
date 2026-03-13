@@ -25,16 +25,12 @@
       
       {% if booking.ticket_type == 'full_package' %}
         <!-- تفاصيل الحضور -->
-        <p><strong>💰 السعر الأساسي:</strong> 100 جنيه</p>
-        {% if booking.extra_people and booking.extra_people > 0 %}
-          <p><strong>👥 أفراد إضافيين:</strong> {{ booking.extra_people }} فرد × 265 = {{ booking.extra_people * 265 }} جنيه</p>
-        {% endif %}
-        {% if booking.pin_medal and booking.pin_medal == 1 %}
-          <p><strong>🎖️ بروش + ميدالية:</strong> 150 جنيه</p>
-        {% endif %}
+        <p><strong>💰 السعر الأساسي:</strong> 150 جنيه</p>
+        <p><strong>👥 أفراد إضافيين:</strong> {{ booking.extra_people if booking.extra_people else 0 }}</p>
+        <p><strong>🎖️ بروش + ميدالية:</strong> {{ 'نعم' if booking.pin_medal else 'لا' }}</p>
+        <p><strong>💰 المبلغ الإجمالي:</strong> <span style="color: #28a745; font-weight: bold; font-size: 1.2rem;">{{ booking.amount }} جنيه</span></p>
       {% endif %}
       
-      <p><strong>💰 المبلغ الإجمالي:</strong> <span style="color: #28a745; font-weight: bold; font-size: 1.2rem;">{{ booking.amount }} جنيه</span></p>
       <p><strong>💳 طريقة الدفع:</strong> 
         {% if booking.payment_method == 'instapay' %}
           <span style="color: #0057e7; font-weight: bold;">InstaPay</span>
@@ -143,7 +139,7 @@
     </div>
     
     <p style="color: #666; margin-top: 15px; font-size: 14px; background: #f8f9ff; padding: 10px; border-radius: 8px;">
-      <strong>ملاحظة:</strong> زر الإلغاء يغير حالة الحجز فقط (يرسله للمرفوضات)، أما زر الحذف فيزيل الحجز نهائياً من قاعدة البيانات مع جميع السجلات المرتبطة به.
+      <strong>ملاحظة:</strong> زر الإلغاء يغير حالة الحجز فقط، أما زر الحذف فيزيل الحجز نهائياً من قاعدة البيانات.
     </p>
   </div>
 </div>
