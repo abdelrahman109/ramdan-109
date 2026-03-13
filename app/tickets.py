@@ -52,23 +52,24 @@ def create_ticket_image(booking, qr_image_path, out_path):
     if os.path.exists(ASSET_LOGO):
         logo = Image.open(ASSET_LOGO).convert("RGBA")
         logo.thumbnail((250, 250))
-        img.paste(logo, ((1200 - logo.width) // 2, 60), logo)
+        img.paste(logo, ((1200 - logo.width) // 2, 40), logo)
     
     # تحديد الأحجام - كلها Arial Bold
-    title_font1 = _font(44)      # Arial Bold 44 للسطر الأول
-    title_font2 = _font(40)      # Arial Bold 40 للسطر الثاني
+    title_font1 = _font(60)      # Arial Bold 60 للسطر الأول (أكبر)
+    title_font2 = _font(60)      # Arial Bold 60 للسطر الثاني (أكبر)
     name_font = _font(36)        # Arial Bold 36 للاسم
     body_font = _font(32)        # Arial Bold 32 للنصوص العادية
     small_font = _font(24)       # Arial Bold 24 للنصوص الصغيرة
     
-    y = 320  # بداية الكتابة بعد اللوجو
+    y = 280  # بداية الكتابة بعد اللوجو (أقرب شوية)
     
-    # العنوان على سطرين - في النص
+    # العنوان على سطرين - في النص بمسافات 1.5 (زيادة المسافة بين السطور)
     draw.text((600, y), "حفل إفطار وتكريم", fill="#7a5a12", font=title_font1, anchor="mt")
-    y += 55
+    y += 70  # مسافة 1.5 تقريباً (بدلاً من 55)
     draw.text((600, y), "أسر شهداء الدفعة 109", fill="#7a5a12", font=title_font2, anchor="mt")
-    draw.text((600, y + 35), "كليات ومعاهد عسكرية", fill="#7a5a12", font=title_font2, anchor="mt")
-    y += 100
+    y += 45
+    draw.text((600, y), "كليات ومعاهد عسكرية", fill="#7a5a12", font=title_font2, anchor="mt")
+    y += 90  # مسافة أكبر قبل الاسم
     
     # اسم الشخص - في النص
     draw.text((600, y), f"الاسم: {booking['name']}", fill="black", font=name_font, anchor="mt")
