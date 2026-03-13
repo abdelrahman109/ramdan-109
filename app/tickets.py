@@ -86,18 +86,19 @@ def create_ticket_image(booking, qr_image_path, out_path):
     
     # تفاصيل الحضور (للتذاكر العادية فقط)
     if booking['ticket_type'] != TICKET_CONTRIBUTION:
-        # حساب المبالغ التفصيلية
-        base_amount = 100  # السعر الأساسي من constants
-        extra_people = booking.get('extra_people', 0)
+        # استخدام الأقواس المربعة بدل .get
+        base_amount = 150
+        extra_people = booking['extra_people'] if 'extra_people' in booking.keys() else 0
         extra_cost = extra_people * PRICE_EXTRA_MEAL
-        pin_cost = PRICE_PIN_MEDAL if booking.get('pin_medal', 0) else 0
+        pin_medal = booking['pin_medal'] if 'pin_medal' in booking.keys() else 0
+        pin_cost = PRICE_PIN_MEDAL if pin_medal else 0
         
         draw.text((600, y), f"القيمة الأساسية: {base_amount} جنيه", fill="black", font=body_font, anchor="mt")
         y += 50
         if extra_people > 0:
             draw.text((600, y), f"أفراد إضافيين: {extra_people} × {PRICE_EXTRA_MEAL} = {extra_cost} جنيه", fill="black", font=body_font, anchor="mt")
             y += 50
-        if booking.get('pin_medal', 0):
+        if pin_medal:
             draw.text((600, y), f"بروش + ميدالية: {PRICE_PIN_MEDAL} جنيه", fill="black", font=body_font, anchor="mt")
             y += 50
     
