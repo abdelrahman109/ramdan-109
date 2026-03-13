@@ -64,29 +64,54 @@ def admin_logout():
 def admin_dashboard():
     if not is_admin():
         return redirect(url_for("admin_login"))
-    return render_template("admin/dashboard.html", stats=dashboard_stats())
+    
+    try:
+        stats = dashboard_stats()
+        return render_template("admin/dashboard.html", stats=stats)
+    except Exception as e:
+        print(f"Error in admin_dashboard: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"حدث خطأ: {str(e)}")
+        return render_template("admin/dashboard.html", stats={})
 
 @app.route("/admin/bookings")
 def admin_bookings():
     if not is_admin():
         return redirect(url_for("admin_login"))
-    bookings = list_bookings(
-        status=request.args.get("status") or None,
-        ticket_type=request.args.get("ticket_type") or None,
-        payment_method=request.args.get("payment_method") or None,
-        search=request.args.get("search") or None,
-    )
-    return render_template("admin/bookings.html", bookings=bookings)
+    
+    try:
+        bookings = list_bookings(
+            status=request.args.get("status") or None,
+            ticket_type=request.args.get("ticket_type") or None,
+            payment_method=request.args.get("payment_method") or None,
+            search=request.args.get("search") or None,
+        )
+        return render_template("admin/bookings.html", bookings=bookings)
+    except Exception as e:
+        print(f"Error in admin_bookings: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"حدث خطأ: {str(e)}")
+        return render_template("admin/bookings.html", bookings=[])
 
 @app.route("/admin/bookings/<int:booking_id>")
 def admin_booking_details(booking_id):
     if not is_admin():
         return redirect(url_for("admin_login"))
-    booking = get_booking_by_id(booking_id)
-    if not booking:
-        flash("الحجز غير موجود")
+    
+    try:
+        booking = get_booking_by_id(booking_id)
+        if not booking:
+            flash("الحجز غير موجود")
+            return redirect(url_for("admin_bookings"))
+        return render_template("admin/booking_details.html", booking=booking)
+    except Exception as e:
+        print(f"Error in admin_booking_details: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"حدث خطأ: {str(e)}")
         return redirect(url_for("admin_bookings"))
-    return render_template("admin/booking_details.html", booking=booking)
 
 @app.route("/admin/bookings/<int:booking_id>/approve", methods=["POST"])
 def admin_approve_booking(booking_id):
@@ -114,6 +139,8 @@ def admin_approve_booking(booking_id):
         
     except Exception as e:
         print(f"Error in approve_booking: {e}")
+        import traceback
+        traceback.print_exc()
         flash(f"❌ حدث خطأ: {str(e)}")
     
     return redirect(request.referrer or url_for("admin_bookings"))
@@ -134,6 +161,8 @@ def admin_reject_booking(booking_id):
         
     except Exception as e:
         print(f"Error in reject_booking: {e}")
+        import traceback
+        traceback.print_exc()
         flash(f"❌ حدث خطأ: {str(e)}")
     
     return redirect(request.referrer or url_for("admin_bookings"))
@@ -156,6 +185,8 @@ def admin_resend_ticket(booking_id):
         
     except Exception as e:
         print(f"Error in resend_ticket: {e}")
+        import traceback
+        traceback.print_exc()
         flash(f"❌ حدث خطأ: {str(e)}")
     
     return redirect(url_for("admin_booking_details", booking_id=booking_id))
@@ -173,6 +204,8 @@ def admin_delete_booking(booking_id):
                 flash("❌ الحجز غير موجود")
                 return redirect(request.referrer or url_for("admin_bookings"))
             
+            booking_code = booking['booking_code']
+            
             # حذف السجلات المرتبطة
             conn.execute("DELETE FROM checkins WHERE booking_id = ?", (booking_id,))
             conn.execute("DELETE FROM admin_actions WHERE booking_id = ?", (booking_id,))
@@ -189,10 +222,12 @@ def admin_delete_booking(booking_id):
             except:
                 pass
             
-            flash(f"✅ تم حذف الحجز {booking['booking_code']} نهائياً")
+            flash(f"✅ تم حذف الحجز {booking_code} نهائياً")
             
     except Exception as e:
         print(f"Error deleting booking: {e}")
+        import traceback
+        traceback.print_exc()
         flash(f"❌ حدث خطأ في حذف الحجز: {str(e)}")
     
     return redirect(url_for("admin_bookings"))
@@ -253,35 +288,43 @@ def scanner_page():
 
 @app.route("/api/validate-ticket", methods=["POST"])
 def api_validate_ticket():
-    data = request.get_json(force=True)
-    result = validate_for_checkin(data.get("qr_token", ""))
-    booking = result.get("booking")
-    
-    return jsonify({
-        "status": result["status"], 
-        "message": result["message"], 
-        "name": booking["name"] if booking else None, 
-        "ticket_type": ticket_label(booking["ticket_type"]) if booking else None, 
-        "booking_code": booking["booking_code"] if booking else None
-    })
+    try:
+        data = request.get_json(force=True)
+        result = validate_for_checkin(data.get("qr_token", ""))
+        booking = result.get("booking")
+        
+        return jsonify({
+            "status": result["status"], 
+            "message": result["message"], 
+            "name": booking["name"] if booking else None, 
+            "ticket_type": ticket_label(booking["ticket_type"]) if booking else None, 
+            "booking_code": booking["booking_code"] if booking else None
+        })
+    except Exception as e:
+        print(f"Error in validate_ticket: {e}")
+        return jsonify({"status": "error", "message": str(e)})
 
 @app.route("/api/checkin", methods=["POST"])
 def api_checkin():
-    data = request.get_json(force=True)
-    result = checkin(
-        data.get("qr_token", ""), 
-        data.get("gate_name", ""), 
-        data.get("checked_in_by", "")
-    )
-    booking = result.get("booking")
-    
-    return jsonify({
-        "status": result["status"], 
-        "message": result["message"], 
-        "name": booking["name"] if booking else None, 
-        "ticket_type": ticket_label(booking["ticket_type"]) if booking else None, 
-        "booking_code": booking["booking_code"] if booking else None
-    })
+    try:
+        data = request.get_json(force=True)
+        result = checkin(
+            data.get("qr_token", ""), 
+            data.get("gate_name", ""), 
+            data.get("checked_in_by", "")
+        )
+        booking = result.get("booking")
+        
+        return jsonify({
+            "status": result["status"], 
+            "message": result["message"], 
+            "name": booking["name"] if booking else None, 
+            "ticket_type": ticket_label(booking["ticket_type"]) if booking else None, 
+            "booking_code": booking["booking_code"] if booking else None
+        })
+    except Exception as e:
+        print(f"Error in checkin: {e}")
+        return jsonify({"status": "error", "message": str(e)})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
