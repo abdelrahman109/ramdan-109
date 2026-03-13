@@ -16,14 +16,14 @@
     
     .scanner-container {
         width: 100%;
-        max-width: 1200px;  /* للاب توب */
+        max-width: 1200px;
         margin: 0 auto;
     }
     
-    /* Responsive Stats */
+    /* Stats Dashboard */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);  /* 4 على اللاب */
+        grid-template-columns: repeat(4, 1fr);
         gap: 15px;
         margin-bottom: 20px;
     }
@@ -81,38 +81,20 @@
     }
     
     .scanner-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        text-align: center;
         margin-bottom: 20px;
-        flex-wrap: wrap;
-        gap: 15px;
     }
     
     .scanner-title {
         color: #764ba2;
-        font-size: 1.8rem;
-    }
-    
-    .scanner-controls {
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-    }
-    
-    .gate-input, .officer-input {
-        padding: 12px 20px;
-        border: 2px solid #e0e0e0;
-        border-radius: 10px;
-        font-size: 1rem;
-        background: white;
-        min-width: 200px;
+        font-size: 2rem;
+        margin-bottom: 10px;
     }
     
     /* Quick Actions */
     .quick-actions {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);  /* 4 على اللاب */
+        grid-template-columns: repeat(4, 1fr);
         gap: 10px;
         margin-bottom: 20px;
     }
@@ -170,45 +152,58 @@
         object-fit: cover;
     }
     
-    /* Manual Input - متجاوب */
+    /* Manual Input - محسن */
     .manual-input {
         display: flex;
-        gap: 10px;
-        margin-top: 15px;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 20px;
         width: 100%;
     }
     
     .manual-input input {
-        flex: 1;  /* يأخذ المساحة المتبقية */
-        padding: 15px 20px;
-        border: 2px solid #e0e0e0;
-        border-radius: 10px;
-        font-size: 1rem;
+        width: 100%;
+        padding: 18px 20px;
+        border: 2px solid #764ba2;
+        border-radius: 15px;
+        font-size: 1.2rem;
         background: white;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
     
     .manual-input input:focus {
         outline: none;
-        border-color: #764ba2;
+        border-color: #43e97b;
+        box-shadow: 0 5px 20px rgba(67, 233, 123, 0.3);
+    }
+    
+    .manual-input input::placeholder {
+        color: #999;
+        font-size: 1rem;
     }
     
     .manual-input button {
-        padding: 15px 30px;
+        width: 100%;
+        padding: 18px 20px;
         background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         color: white;
         border: none;
-        border-radius: 10px;
-        font-size: 1rem;
+        border-radius: 15px;
+        font-size: 1.3rem;
         font-weight: bold;
         cursor: pointer;
-        white-space: nowrap;
-        min-width: 120px;  /* نفس الحقل */
         transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     }
     
     .manual-input button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+    
+    .manual-input button:active {
+        transform: translateY(0);
     }
     
     /* Result Display */
@@ -320,28 +315,15 @@
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     }
     
-    /* ========== Responsive للموبايل ========== */
+    /* Responsive */
     @media (max-width: 992px) {
         .stats-grid {
-            grid-template-columns: repeat(2, 1fr);  /* 2 على التابلت */
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
         }
         
         .quick-actions {
-            grid-template-columns: repeat(2, 1fr);  /* 2 على التابلت */
-        }
-        
-        .scanner-header {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        
-        .scanner-controls {
-            flex-direction: column;
-        }
-        
-        .gate-input, .officer-input {
-            width: 100%;
+            grid-template-columns: repeat(2, 1fr);
         }
     }
     
@@ -371,35 +353,29 @@
         }
         
         .scanner-title {
-            font-size: 1.3rem;
-            text-align: center;
+            font-size: 1.5rem;
         }
         
         .action-btn {
             padding: 10px 5px;
-            font-size: 0.8rem;
         }
         
         .action-icon {
             font-size: 1.5rem;
         }
         
-        .manual-input {
-            flex-direction: column;  /* فوق بعض على الموبايل */
-            gap: 8px;
+        .action-label {
+            font-size: 0.8rem;
         }
         
         .manual-input input {
-            width: 100%;
-            padding: 12px;
+            padding: 15px;
             font-size: 1rem;
         }
         
         .manual-input button {
-            width: 100%;  /* نفس عرض الحقل */
-            padding: 12px;
-            font-size: 1rem;
-            min-width: auto;  /* إلغاء الـ min-width */
+            padding: 15px;
+            font-size: 1.1rem;
         }
         
         .result-title {
@@ -414,11 +390,7 @@
             font-size: 1rem;
         }
         
-        .scans-table th {
-            font-size: 0.8rem;
-            padding: 8px 5px;
-        }
-        
+        .scans-table th,
         .scans-table td {
             font-size: 0.8rem;
             padding: 8px 5px;
@@ -447,7 +419,6 @@
         }
         
         .quick-actions {
-            grid-template-columns: repeat(2, 1fr);
             gap: 5px;
         }
         
@@ -461,6 +432,16 @@
         
         .action-label {
             font-size: 0.7rem;
+        }
+        
+        .manual-input input {
+            padding: 12px;
+            font-size: 0.9rem;
+        }
+        
+        .manual-input button {
+            padding: 12px;
+            font-size: 1rem;
         }
     }
 </style>
@@ -494,10 +475,6 @@
     <div class="scanner-section">
         <div class="scanner-header">
             <div class="scanner-title">📱 ماسح QR</div>
-            <div class="scanner-controls">
-                <input type="text" id="gateName" class="gate-input" placeholder="اسم البوابة" value="البوابة الرئيسية">
-                <input type="text" id="officerName" class="officer-input" placeholder="اسم الموظف">
-            </div>
         </div>
         
         <!-- Quick Actions -->
@@ -525,9 +502,9 @@
             <div id="reader"></div>
         </div>
         
-        <!-- Manual Input - نفس الحجم -->
+        <!-- Manual Input - محسن وكبير -->
         <div class="manual-input">
-            <input type="text" id="manualToken" placeholder="الصق رمز التذكرة">
+            <input type="text" id="manualToken" placeholder="الصق رمز التذكرة هنا">
             <button onclick="manualCheckin()">تسجيل دخول</button>
         </div>
         
@@ -645,17 +622,14 @@
     
     // Checkin ticket
     async function checkinTicket(token) {
-        let gateName = document.getElementById('gateName').value.trim() || 'البوابة الرئيسية';
-        let officerName = document.getElementById('officerName').value.trim() || 'موظف';
-        
         try {
             let response = await fetch('/api/checkin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     qr_token: token,
-                    gate_name: gateName,
-                    checked_in_by: officerName
+                    gate_name: 'بوابة',  // قيمة افتراضية
+                    checked_in_by: 'موظف'  // قيمة افتراضية
                 })
             });
             
