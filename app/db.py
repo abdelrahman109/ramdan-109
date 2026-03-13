@@ -20,8 +20,10 @@ def connect():
         conn.close()
 
 def init_db():
+    """إنشاء قاعدة البيانات مع التأكد من وجود جميع الأعمدة"""
     with connect() as conn:
-        conn.executescript('''
+        # إنشاء جدول bookings إذا لم يكن موجوداً
+        conn.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 telegram_chat_id INTEGER,
@@ -36,8 +38,6 @@ def init_db():
                 qr_token TEXT UNIQUE,
                 ticket_image_path TEXT,
                 is_attending INTEGER NOT NULL DEFAULT 0,
-                extra_people INTEGER DEFAULT 0,
-                pin_medal BOOLEAN DEFAULT 0,
                 proof_uploaded_at TEXT,
                 approved_at TEXT,
                 rejected_at TEXT,
@@ -46,8 +46,26 @@ def init_db():
                 checked_in_by TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
-            );
+            )
+        ''')
+        
+        # إضافة الأعمدة الجديدة إذا لم تكن موجودة
+        try:
+            conn.execute("ALTER TABLE bookings ADD COLUMN extra_people INTEGER DEFAULT 0")
+            print("✅ Column 'extra_people' added successfully")
+        except sqlite3.OperationalError:
+            # العمود موجود بالفعل
+            pass
             
+        try:
+            conn.execute("ALTER TABLE bookings ADD COLUMN pin_medal BOOLEAN DEFAULT 0")
+            print("✅ Column 'pin_medal' added successfully")
+        except sqlite3.OperationalError:
+            # العمود موجود بالفعل
+            pass
+        
+        # إنشاء باقي الجداول
+        conn.execute('''
             CREATE TABLE IF NOT EXISTS checkins (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 booking_id INTEGER NOT NULL,
@@ -56,8 +74,10 @@ def init_db():
                 gate_name TEXT,
                 checked_in_by TEXT,
                 result TEXT NOT NULL
-            );
-            
+            )
+        ''')
+        
+        conn.execute('''
             CREATE TABLE IF NOT EXISTS admin_actions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 booking_id INTEGER,
@@ -66,8 +86,10 @@ def init_db():
                 admin_name TEXT,
                 notes TEXT,
                 created_at TEXT NOT NULL
-            );
-            
+            )
+        ''')
+        
+        conn.execute('''
             CREATE TABLE IF NOT EXISTS broadcast_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 message_title TEXT,
@@ -76,12 +98,16 @@ def init_db():
                 sent_count INTEGER NOT NULL DEFAULT 0,
                 sent_by TEXT,
                 sent_at TEXT NOT NULL
-            );
-            
+            )
+        ''')
+        
+        conn.execute('''
             CREATE TABLE IF NOT EXISTS bot_sessions (
                 telegram_chat_id INTEGER PRIMARY KEY,
                 state TEXT,
                 data_json TEXT,
                 updated_at TEXT NOT NULL
-            );
+            )
         ''')
+        
+        print("✅ Database initialized successfully")
