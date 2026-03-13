@@ -360,6 +360,73 @@
         setTimeout(startScanner, 500);
     });
     
+    // الأصوات المختلفة للنتائج
+    function playSound(type) {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        if (type === 'success') {
+            // صوت نغمة قصيرة لطيفة - تردد 800Hz
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.3);
+            
+            // نغمة ثانية أعلى
+            setTimeout(() => {
+                const oscillator2 = audioCtx.createOscillator();
+                const gainNode2 = audioCtx.createGain();
+                oscillator2.connect(gainNode2);
+                gainNode2.connect(audioCtx.destination);
+                oscillator2.type = 'sine';
+                oscillator2.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                gainNode2.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                oscillator2.start();
+                oscillator2.stop(audioCtx.currentTime + 0.2);
+            }, 150);
+            
+        } else if (type === 'warning' || type === 'already_used') {
+            // صوت تحذير - تردد 400Hz متقطع
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.1);
+                }, i * 150);
+            }
+            
+        } else if (type === 'error') {
+            // صوت خطأ - تردد منخفض 200Hz
+            for (let i = 0; i < 2; i++) {
+                setTimeout(() => {
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.type = 'square';
+                    oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.2);
+                }, i * 200);
+            }
+        }
+    }
+    
     // Start scanner automatically with back camera
     function startScanner() {
         if (isScanning) return;
@@ -529,6 +596,9 @@
         iconDiv.innerHTML = icon;
         titleDiv.innerHTML = title;
         detailsDiv.innerHTML = details;
+        
+        // تشغيل الصوت حسب نوع النتيجة
+        playSound(type);
         
         // Auto-hide after 5 seconds
         if (type === 'success') {
