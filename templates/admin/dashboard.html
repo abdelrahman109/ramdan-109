@@ -2,6 +2,7 @@
 {% block body %}
 <h1>لوحة الإدارة</h1>
 
+<!-- الإحصائيات الأساسية -->
 <div class="grid">
   <div class="stat">
     <strong>إجمالي الحجوزات</strong>
@@ -35,18 +36,36 @@
     <strong>الإيرادات</strong>
     <span>{{ stats.revenue }} جنيه</span>
   </div>
-  <div class="stat">
-    <strong>InstaPay</strong>
-    <span>{{ stats.instapay_count }}</span>
-  </div>
-  <div class="stat">
-    <strong>محفظة</strong>
-    <span>{{ stats.wallet_count }}</span>
+</div>
+
+<!-- إحصائيات طرق الدفع -->
+<div class="card">
+  <h2>💳 إحصائيات طرق الدفع</h2>
+  <div class="grid">
+    <div class="stat" style="background: linear-gradient(135deg, #0057e7 0%, #00c6fb 100%);">
+      <strong>InstaPay</strong>
+      <span>{{ stats.instapay_count }} عملية</span>
+      <span style="font-size: 1.5rem;">💰 إجمالي: {{ stats.instapay_total }} جنيه</span>
+      <div style="font-size: 0.9rem; margin-top: 10px;">
+        <div>✅ حضور: {{ stats.instapay_attendees }} جنيه</div>
+        <div>❤️ مساهمات: {{ stats.instapay_contributions }} جنيه</div>
+      </div>
+    </div>
+    <div class="stat" style="background: linear-gradient(135deg, #ff4b2b 0%, #ff416c 100%);">
+      <strong>محفظة إلكترونية</strong>
+      <span>{{ stats.wallet_count }} عملية</span>
+      <span style="font-size: 1.5rem;">💰 إجمالي: {{ stats.wallet_total }} جنيه</span>
+      <div style="font-size: 0.9rem; margin-top: 10px;">
+        <div>✅ حضور: {{ stats.wallet_attendees }} جنيه</div>
+        <div>❤️ مساهمات: {{ stats.wallet_contributions }} جنيه</div>
+      </div>
+    </div>
   </div>
 </div>
 
+<!-- آخر الحجوزات -->
 <div class="card">
-  <h2>آخر الحجوزات</h2>
+  <h2>📋 آخر الحجوزات</h2>
   <table>
     <thead>
       <tr>
@@ -54,6 +73,7 @@
         <th>الاسم</th>
         <th>النوع</th>
         <th>المبلغ</th>
+        <th>طريقة الدفع</th>
         <th>الحالة</th>
         <th>التفاصيل</th>
       </tr>
@@ -61,15 +81,80 @@
     <tbody>
       {% for b in stats.latest %}
       <tr>
-        <td>{{ b.booking_code }}</td>
+        <td><strong>{{ b.booking_code }}</strong></td>
         <td>{{ b.name }}</td>
         <td>{{ ticket_label(b.ticket_type) }}</td>
         <td>{{ b.amount }} جنيه</td>
-        <td><span class="badge {% if b.status == 'paid' %}ok{% elif b.status == 'pending_review' %}warn{% elif b.status == 'rejected' %}error{% endif %}">{{ b.status }}</span></td>
-        <td><a href="{{ url_for('admin_booking_details', booking_id=b.id) }}">عرض</a></td>
+        <td>
+          {% if b.payment_method == 'instapay' %}
+            <span style="color: #0057e7; font-weight: bold;">InstaPay</span>
+          {% else %}
+            <span style="color: #ff4b2b; font-weight: bold;">محفظة</span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge 
+            {% if b.status == 'paid' %}ok
+            {% elif b.status == 'pending_review' %}warn
+            {% elif b.status == 'rejected' %}error
+            {% elif b.status == 'used' %}used
+            {% elif b.status == 'pending_proof' %}warn
+            {% endif %}">
+            {% if b.status == 'paid' %}مدفوع
+            {% elif b.status == 'pending_review' %}في انتظار المراجعة
+            {% elif b.status == 'rejected' %}مرفوض
+            {% elif b.status == 'used' %}تم الدخول
+            {% elif b.status == 'pending_proof' %}في انتظار الإثبات
+            {% else %}{{ b.status }}{% endif %}
+          </span>
+        </td>
+        <td>
+          <a href="{{ url_for('admin_booking_details', booking_id=b.id) }}" class="btn-small">عرض التفاصيل</a>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  
+  {% if stats.latest|length == 0 %}
+    <p style="text-align: center; color: #666; padding: 20px;">لا توجد حجوزات حتى الآن</p>
+  {% endif %}
 </div>
+
+<style>
+  .badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+  }
+  .badge.ok {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  }
+  .badge.warn {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  }
+  .badge.error {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+  .badge.used {
+    background: linear-gradient(135deg, #6b8cff 0%, #4158d0 100%);
+  }
+  .btn-small {
+    display: inline-block;
+    padding: 5px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+  }
+  .btn-small:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  }
+</style>
 {% endblock %}
