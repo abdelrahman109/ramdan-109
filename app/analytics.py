@@ -3,6 +3,10 @@ from app.config import EVENT_CAPACITY
 
 def dashboard_stats():
     with connect() as conn:
+        # التحقق من وجود الأعمدة الجديدة
+        cursor = conn.execute("PRAGMA table_info(bookings)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
         # إحصائيات أساسية
         total = conn.execute("SELECT COUNT(*) c FROM bookings").fetchone()["c"]
         paid = conn.execute("SELECT COUNT(*) c FROM bookings WHERE status IN ('paid','used')").fetchone()["c"]
@@ -26,12 +30,6 @@ def dashboard_stats():
         instapay_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='instapay'"
         ).fetchone()["c"]
-        instapay_attendees = conn.execute(
-            "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='instapay' AND is_attending=1 AND status IN ('paid','used')"
-        ).fetchone()["s"]
-        instapay_contributions = conn.execute(
-            "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='instapay' AND is_attending=0 AND status IN ('paid','used')"
-        ).fetchone()["s"]
         
         # إحصائيات المحفظة
         wallet_total = conn.execute(
@@ -40,24 +38,24 @@ def dashboard_stats():
         wallet_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='wallet'"
         ).fetchone()["c"]
-        wallet_attendees = conn.execute(
-            "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='wallet' AND is_attending=1 AND status IN ('paid','used')"
-        ).fetchone()["s"]
-        wallet_contributions = conn.execute(
-            "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='wallet' AND is_attending=0 AND status IN ('paid','used')"
-        ).fetchone()["s"]
         
-        # =============== إحصائيات جديدة (المطلوبة) ===============
+        # =============== إحصائيات جديدة (مع التحقق من وجود الأعمدة) ===============
         
         # إجمالي عدد الضيوف الإضافيين (extra_people)
-        total_extra_people = conn.execute(
-            "SELECT COALESCE(SUM(extra_people),0) s FROM bookings WHERE is_attending=1 AND status IN ('paid','used')"
-        ).fetchone()["s"]
-        
+        if 'extra_people' in columns:
+            total_extra_people = conn.execute(
+                "SELECT COALESCE(SUM(extra_people),0) s FROM bookings WHERE is_attending=1 AND status IN ('paid','used')"
+            ).fetchone()["s"]
+        else:
+            total_extra_people = 0
+            
         # إجمالي عدد البروشات والميداليات المطلوبة
-        total_pin_medal = conn.execute(
-            "SELECT COUNT(*) c FROM bookings WHERE is_attending=1 AND pin_medal=1 AND status IN ('paid','used')"
-        ).fetchone()["c"]
+        if 'pin_medal' in columns:
+            total_pin_medal = conn.execute(
+                "SELECT COUNT(*) c FROM bookings WHERE is_attending=1 AND pin_medal=1 AND status IN ('paid','used')"
+            ).fetchone()["c"]
+        else:
+            total_pin_medal = 0
         
         # إجمالي عدد الضيوف الكلي (الأساسي + الإضافيين)
         total_guests = attendees + total_extra_people
@@ -74,20 +72,16 @@ def dashboard_stats():
         "attendees": attendees,
         "contributors": contributors,
         "revenue": revenue,
-        "remaining": remaining_capacity,  # تم التعديل لاستخدام total_guests
+        "remaining": remaining_capacity,
         "latest": latest,
         
-        # إحصائيات InstaPay كاملة
+        # إحصائيات InstaPay
         "instapay_total": instapay_total,
         "instapay_count": instapay_count,
-        "instapay_attendees": instapay_attendees,
-        "instapay_contributions": instapay_contributions,
         
-        # إحصائيات المحفظة كاملة
+        # إحصائيات المحفظة
         "wallet_total": wallet_total,
         "wallet_count": wallet_count,
-        "wallet_attendees": wallet_attendees,
-        "wallet_contributions": wallet_contributions,
         
         # =============== الإحصائيات الجديدة ===============
         "total_extra_people": total_extra_people,    # إجمالي الضيوف الإضافيين
