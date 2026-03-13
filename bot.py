@@ -21,6 +21,7 @@ bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 # حالات البوت
 STATE_SELECT_TICKET = "select_ticket"
 STATE_SELECT_CONTRIBUTION_AMOUNT = "select_contribution_amount"
+STATE_ENTER_CONTRIBUTION_AMOUNT = "enter_contribution_amount"  # حالة جديدة لإدخال المبلغ يدوياً
 STATE_ENTER_NAME = "enter_name"
 STATE_ENTER_PHONE = "enter_phone"
 STATE_WAITING_PAYMENT_PROOF = "waiting_payment_proof"
@@ -39,18 +40,12 @@ def ticket_inline_keyboard():
     kb.row(types.InlineKeyboardButton("مساهمة بدون حضور ❤️", callback_data=f"ticket:{TICKET_CONTRIBUTION}"))
     return kb
 
-def contribution_keyboard():
-    kb = types.InlineKeyboardMarkup(row_width=3)
-    kb.add(*[types.InlineKeyboardButton(f"{amt} جنيه", callback_data=f"amount:{amt}") for amt in CONTRIBUTION_AMOUNTS])
-    return kb
-
 def payment_method_keyboard():
     kb = types.InlineKeyboardMarkup()
     kb.row(types.InlineKeyboardButton("InstaPay", callback_data=f"pay:{PAY_INSTAPAY}"))
     kb.row(types.InlineKeyboardButton("محفظة إلكترونية", callback_data=f"pay:{PAY_WALLET}"))
     return kb
 
-# =============== نصوص ===============
 def event_info_text():
     return f"🎟 {EVENT_NAME}\n\n🕠 الموعد: {EVENT_TIME}\n⏰ {EVENT_PRE_ARRIVAL_TEXT}\n\n📍 المكان: {EVENT_LOCATION}\n{EVENT_MAP}"
 
@@ -67,7 +62,7 @@ def payment_info_text():
     )
 
 def ticket_types_text():
-    return "أنواع التذاكر\n\n1) حضور الحفل + الإفطار + ميدالية + بروش — 565\n2) حضور الحفل + إفطار فقط — 415\n3) مساهمة بدون حضور — من 200 إلى 1000"
+    return "أنواع التذاكر\n\n1) حضور الحفل + الإفطار + ميدالية + بروش — 565\n2) حضور الحفل + إفطار فقط — 415\n3) مساهمة بدون حضور ❤️ (اكتب المبلغ اللي تحبه)"
 
 # =============== معالجات البوت ===============
 @bot.message_handler(commands=["start"])
@@ -103,33 +98,19 @@ def quick_actions(message):
 def on_ticket(c):
     try:
         ticket_type = c.data.split(":", 1)[1]
+        
         if ticket_type == TICKET_CONTRIBUTION:
-            set_session(c.message.chat.id, STATE_SELECT_CONTRIBUTION_AMOUNT, {"ticket_type": ticket_type})
-            bot.send_message(c.message.chat.id, "اختر قيمة المساهمة", reply_markup=contribution_keyboard())
+            # المساهمة - نطلب إدخال المبلغ يدوياً
+            set_session(c.message.chat.id, STATE_ENTER_CONTRIBUTION_AMOUNT, {"ticket_type": ticket_type})
+            bot.send_message(c.message.chat.id, "❤️ **مساهمة بدون حضور**\n\nاكتب قيمة المساهمة التي تريدها (مثلاً: 250 أو 750 أو أي مبلغ تحبه):", reply_markup=main_reply_keyboard())
         else:
+            # حضور - المبلغ ثابت
             set_session(c.message.chat.id, STATE_ENTER_NAME, {"ticket_type": ticket_type, "amount": TICKETS[ticket_type]["amount"]})
             bot.send_message(c.message.chat.id, "اكتب الاسم الكامل", reply_markup=main_reply_keyboard())
+        
         bot.answer_callback_query(c.id)
     except Exception as e:
         print(f"Error in on_ticket: {e}")
-        traceback.print_exc()
-        bot.answer_callback_query(c.id, "حدث خطأ، حاول مرة أخرى")
-
-@bot.callback_query_handler(func=lambda c: c.data.startswith("amount:"))
-def on_amount(c):
-    try:
-        amount = int(c.data.split(":", 1)[1])
-        session = get_session(c.message.chat.id)
-        if not session:
-            bot.answer_callback_query(c.id, "انتهت الجلسة، ابدأ من /start")
-            return
-        data = session["data"]
-        data["amount"] = amount
-        set_session(c.message.chat.id, STATE_ENTER_NAME, data)
-        bot.send_message(c.message.chat.id, "اكتب الاسم الكامل", reply_markup=main_reply_keyboard())
-        bot.answer_callback_query(c.id)
-    except Exception as e:
-        print(f"Error in on_amount: {e}")
         traceback.print_exc()
         bot.answer_callback_query(c.id, "حدث خطأ، حاول مرة أخرى")
 
@@ -287,7 +268,32 @@ def on_text(message):
         state = session["state"]
         data = session["data"]
         
-        if state == STATE_ENTER_NAME:
+        # حالة إدخال قيمة المساهمة يدوياً
+        if state == STATE_ENTER_CONTRIBUTION_AMOUNT:
+            try:
+                # محاولة تحويل النص لرقم
+                amount_text = message.text.strip().replace(',', '').replace(' ', '')
+                amount = int(float(amount_text))
+                
+                # التحقق من أن المبلغ موجب ومعقول
+                if amount < 50:
+                    bot.reply_to(message, "❌ أقل قيمة للمساهمة 50 جنيه. اكتب مبلغ أكبر:")
+                    return
+                if amount > 50000:
+                    bot.reply_to(message, "❌ أكبر قيمة للمساهمة 50000 جنيه. اكتب مبلغ أقل:")
+                    return
+                
+                # حفظ المبلغ والانتقال لطلب الاسم
+                data["amount"] = amount
+                set_session(message.chat.id, STATE_ENTER_NAME, data)
+                bot.reply_to(message, f"❤️ تم اختيار مساهمة بقيمة **{amount} جنيه**\n\nالآن اكتب الاسم الكامل:", reply_markup=main_reply_keyboard())
+                return
+                
+            except ValueError:
+                bot.reply_to(message, "❌ قيمة غير صالحة. اكتب رقماً صحيحاً (مثلاً: 250 أو 750):")
+                return
+        
+        elif state == STATE_ENTER_NAME:
             if not message.text or len(message.text.strip()) < 3:
                 bot.reply_to(message, "الاسم قصير جداً، اكتب الاسم كاملاً", reply_markup=main_reply_keyboard())
                 return
@@ -296,7 +302,7 @@ def on_text(message):
             bot.reply_to(message, "اكتب رقم الموبايل", reply_markup=main_reply_keyboard())
             return
             
-        if state == STATE_ENTER_PHONE:
+        elif state == STATE_ENTER_PHONE:
             phone = normalize_phone(message.text)
             if not is_valid_phone(phone):
                 bot.reply_to(message, "رقم الهاتف غير صحيح. اكتب رقمًا مصريًا صحيحًا يبدأ بـ 01", reply_markup=main_reply_keyboard())
