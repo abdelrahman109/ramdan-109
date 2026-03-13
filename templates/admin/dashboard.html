@@ -3,83 +3,128 @@
 <h1>لوحة الإدارة</h1>
 
 <!-- الإحصائيات الأساسية -->
-<div class="grid">
-  <div class="stat">
-    <strong>إجمالي الحجوزات</strong>
-    <span>{{ stats.total }}</span>
+<div class="stats-grid">
+  <div class="stat-card primary">
+    <div class="stat-value">{{ stats.total }}</div>
+    <div class="stat-label">إجمالي الحجوزات</div>
   </div>
-  <div class="stat">
-    <strong>المدفوع</strong>
-    <span>{{ stats.paid }}</span>
+  <div class="stat-card success">
+    <div class="stat-value">{{ stats.paid }}</div>
+    <div class="stat-label">مدفوع</div>
   </div>
-  <div class="stat">
-    <strong>المعلق</strong>
-    <span>{{ stats.pending }}</span>
+  <div class="stat-card warning">
+    <div class="stat-value">{{ stats.pending }}</div>
+    <div class="stat-label">معلق</div>
   </div>
-  <div class="stat">
-    <strong>الحضور</strong>
-    <span>{{ stats.attendees }}</span>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.used }}</div>
+    <div class="stat-label">تم الدخول</div>
   </div>
-  <div class="stat">
-    <strong>المساهمون</strong>
-    <span>{{ stats.contributors }}</span>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.revenue }} جنيه</div>
+    <div class="stat-label">الإيرادات</div>
   </div>
-  <div class="stat">
-    <strong>استخدمت</strong>
-    <span>{{ stats.used }}</span>
-  </div>
-  <div class="stat">
-    <strong>المتبقي</strong>
-    <span>{{ stats.remaining }}</span>
-  </div>
-  <div class="stat">
-    <strong>الإيرادات</strong>
-    <span>{{ stats.revenue }} جنيه</span>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.remaining }}</div>
+    <div class="stat-label">المتبقي</div>
   </div>
 </div>
 
-<!-- إحصائيات الضيوف والبروش (الجديدة) -->
-<div class="card">
-  <h2>👥 إحصائيات الضيوف والبروش</h2>
-  <div class="grid">
-    <div class="stat" style="background: linear-gradient(135deg, #ff4b2b 0%, #ff416c 100%);">
-      <strong>إجمالي الضيوف الكلي</strong>
-      <span>{{ stats.total_guests }}</span>
-      <div style="font-size: 0.9rem; margin-top: 10px;">
-        <div>✅ حضور أساسي: {{ stats.attendees }}</div>
-        <div>➕ ضيوف إضافيين: {{ stats.total_extra_people }}</div>
+<!-- =============== إحصائيات طرق الدفع =============== -->
+<h2 style="color: #764ba2; margin: 30px 0 20px;">💳 إحصائيات طرق الدفع</h2>
+
+<div class="payment-grid">
+  <!-- InstaPay -->
+  <div class="payment-card" style="border-top: 5px solid #0057e7;">
+    <div class="payment-title">InstaPay</div>
+    
+    <div class="payment-stats">
+      <div class="payment-stat">
+        <div class="stat-value">{{ stats.instapay.count }}</div>
+        <div class="stat-label">عدد العمليات</div>
+      </div>
+      <div class="payment-stat">
+        <div class="stat-value">{{ stats.instapay.attendees }}</div>
+        <div class="stat-label">حضور</div>
+      </div>
+      <div class="payment-stat">
+        <div class="stat-value">{{ stats.instapay.contributions }}</div>
+        <div class="stat-label">مساهمات</div>
       </div>
     </div>
-    <div class="stat" style="background: linear-gradient(135deg, #9a7b2f 0%, #d9b96d 100%);">
-      <strong>بروش + ميدالية</strong>
-      <span>{{ stats.total_pin_medal }}</span>
-      <div style="font-size: 0.9rem; margin-top: 10px;">
-        <div>🎖️ عدد المطلوب: {{ stats.total_pin_medal }} بروش</div>
+    
+    <div class="payment-total">
+      الإجمالي: {{ stats.instapay.total }} جنيه
+    </div>
+  </div>
+  
+  <!-- المحفظة -->
+  <div class="payment-card" style="border-top: 5px solid #ff4b2b;">
+    <div class="payment-title">محفظة إلكترونية</div>
+    
+    <div class="payment-stats">
+      <div class="payment-stat">
+        <div class="stat-value">{{ stats.wallet.count }}</div>
+        <div class="stat-label">عدد العمليات</div>
       </div>
+      <div class="payment-stat">
+        <div class="stat-value">{{ stats.wallet.attendees }}</div>
+        <div class="stat-label">حضور</div>
+      </div>
+      <div class="payment-stat">
+        <div class="stat-value">{{ stats.wallet.contributions }}</div>
+        <div class="stat-label">مساهمات</div>
+      </div>
+    </div>
+    
+    <div class="payment-total">
+      الإجمالي: {{ stats.wallet.total }} جنيه
     </div>
   </div>
 </div>
 
-<!-- إحصائيات طرق الدفع -->
-<div class="card">
-  <h2>💳 إحصائيات طرق الدفع</h2>
-  <div class="grid">
-    <div class="stat" style="background: linear-gradient(135deg, #0057e7 0%, #00c6fb 100%);">
-      <strong>InstaPay</strong>
-      <span>💰 {{ stats.instapay_total }} جنيه</span>
-      <div>{{ stats.instapay_count }} عملية</div>
+<!-- =============== إحصائيات الضيوف والبروش =============== -->
+<h2 style="color: #764ba2; margin: 40px 0 20px;">👥 إحصائيات الضيوف والبروش</h2>
+
+<div class="guests-grid">
+  <!-- الضيوف الكلي -->
+  <div class="guest-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="guest-title">إجمالي الضيوف</div>
+    <div class="guest-main">{{ stats.guests.total_guests }}</div>
+    <div class="guest-details">
+      <div>أساسي: {{ stats.guests.attendees }}</div>
+      <div>إضافي: {{ stats.guests.extra_people }}</div>
     </div>
-    <div class="stat" style="background: linear-gradient(135deg, #ff4b2b 0%, #ff416c 100%);">
-      <strong>محفظة إلكترونية</strong>
-      <span>💰 {{ stats.wallet_total }} جنيه</span>
-      <div>{{ stats.wallet_count }} عملية</div>
+  </div>
+  
+  <!-- الضيوف مع/بدون إضافيين -->
+  <div class="guest-card">
+    <div class="guest-title">توزيع الضيوف</div>
+    <div class="guest-stats">
+      <div class="guest-stat">
+        <div class="stat-value">{{ stats.guests.with_extra }}</div>
+        <div class="stat-label">مع إضافيين</div>
+      </div>
+      <div class="guest-stat">
+        <div class="stat-value">{{ stats.guests.without_extra }}</div>
+        <div class="stat-label">بدون إضافيين</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- البروش والميدالية -->
+  <div class="guest-card" style="background: linear-gradient(135deg, #9a7b2f 0%, #d9b96d 100%);">
+    <div class="guest-title">بروش + ميدالية</div>
+    <div class="guest-main">{{ stats.pin_medal.count }}</div>
+    <div class="guest-details">
+      <div>عدد المطلوب: {{ stats.pin_medal.count }} بروش</div>
     </div>
   </div>
 </div>
 
 <!-- آخر الحجوزات -->
 <div class="card">
-  <h2>📋 آخر الحجوزات</h2>
+  <h2 style="color: #764ba2;">📋 آخر الحجوزات</h2>
   <table>
     <thead>
       <tr>
@@ -89,6 +134,7 @@
         <th>الضيوف</th>
         <th>بروش</th>
         <th>المبلغ</th>
+        <th>طريقة الدفع</th>
         <th>الحالة</th>
         <th>التفاصيل</th>
       </tr>
@@ -117,6 +163,13 @@
         </td>
         <td>{{ b.amount }} جنيه</td>
         <td>
+          {% if b.payment_method == 'instapay' %}
+            <span style="color: #0057e7;">InstaPay</span>
+          {% else %}
+            <span style="color: #ff4b2b;">محفظة</span>
+          {% endif %}
+        </td>
+        <td>
           <span class="badge 
             {% if b.status == 'paid' %}ok
             {% elif b.status == 'pending_review' %}warn
@@ -136,60 +189,203 @@
 </div>
 
 <style>
-  .badge {
-    display: inline-block;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: white;
-  }
-  .badge.ok {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  }
-  .badge.warn {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  }
-  .badge.error {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  }
-  .badge.used {
-    background: linear-gradient(135deg, #6b8cff 0%, #4158d0 100%);
-  }
-  .btn-small {
-    display: inline-block;
-    padding: 5px 12px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    font-size: 0.85rem;
-    transition: all 0.3s ease;
-  }
-  .btn-small:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  }
-  .grid {
+  /* الإحصائيات الأساسية */
+  .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 20px;
     margin-bottom: 30px;
   }
-  .stat {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  
+  .stat-card {
+    background: white;
     border-radius: 15px;
-    padding: 25px 20px;
+    padding: 20px;
     text-align: center;
-    color: white;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border: 1px solid #eee;
   }
+  
+  .stat-card.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  
+  .stat-card.success {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    color: white;
+  }
+  
+  .stat-card.warning {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    color: white;
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+  
+  /* إحصائيات طرق الدفع */
+  .payment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+    margin-bottom: 40px;
+  }
+  
+  .payment-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  }
+  
+  .payment-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .payment-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .payment-stat {
+    text-align: center;
+    padding: 10px;
+    background: #f8f9ff;
+    border-radius: 10px;
+  }
+  
+  .payment-total {
+    text-align: center;
+    padding: 15px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+  
+  /* إحصائيات الضيوف */
+  .guests-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    margin-bottom: 40px;
+  }
+  
+  .guest-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    color: white;
+  }
+  
+  .guest-card:not([style*="background"]) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .guest-title {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    text-align: center;
+    opacity: 0.9;
+  }
+  
+  .guest-main {
+    font-size: 2.5rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  
+  .guest-details {
+    display: flex;
+    justify-content: space-around;
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+  
+  .guest-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .guest-stat {
+    text-align: center;
+    padding: 10px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+  }
+  
+  /* الجدول */
   .card {
     background: white;
     border-radius: 20px;
     padding: 25px;
     margin-bottom: 30px;
     box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px;
+    text-align: right;
+  }
+  
+  td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+  }
+  .badge.ok { background: #28a745; }
+  .badge.warn { background: #ffc107; color: #333; }
+  .badge.error { background: #dc3545; }
+  .badge.used { background: #17a2b8; }
+  
+  .btn-small {
+    display: inline-block;
+    padding: 5px 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 12px;
+  }
+  
+  @media (max-width: 768px) {
+    .payment-grid,
+    .guests-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 {% endblock %}
