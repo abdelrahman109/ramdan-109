@@ -88,13 +88,24 @@ def create_ticket_image(booking, qr_image_path, out_path):
         extra_people = booking['extra_people'] if 'extra_people' in booking.keys() else 0
         pin_medal = booking['pin_medal'] if 'pin_medal' in booking.keys() else 0
         
-        # تفاصيل التذكرة في سطرين منظمين
-        details_line1 = f"قيمة أساسية: 150 جنيه  |  أفراد إضافيين: {extra_people}"
-        draw.text((600, y), details_line1, fill="black", font=detail_font, anchor="mt")
+        # مساهمة وجبة أسر الشهداء (السعر 150)
+        draw.text((600, y), f"مساهمة وجبة أسر الشهداء: 150 جنيه", fill="black", font=detail_font, anchor="mt")
         y += 50
         
-        details_line2 = f"بروش + ميدالية: {'نعم' if pin_medal else 'لا'}  |  الإجمالي: {booking['amount']} جنيه"
-        draw.text((600, y), details_line2, fill="#9a7b2f", font=detail_font, anchor="mt")
+        # تفاصيل التذكرة في سطرين منظمين
+        if extra_people > 0:
+            details_line1 = f"أفراد إضافيين: {extra_people} × {PRICE_EXTRA_MEAL} = {extra_people * PRICE_EXTRA_MEAL} جنيه"
+            draw.text((600, y), details_line1, fill="black", font=detail_font, anchor="mt")
+            y += 50
+        
+        if pin_medal:
+            details_line2 = f"بروش + ميدالية: {PRICE_PIN_MEDAL} جنيه"
+            draw.text((600, y), details_line2, fill="black", font=detail_font, anchor="mt")
+            y += 50
+        
+        # الإجمالي
+        total_line = f"الإجمالي: {booking['amount']} جنيه"
+        draw.text((600, y), total_line, fill="#9a7b2f", font=name_font, anchor="mt")
         y += 60
     else:
         # للمساهمات فقط
