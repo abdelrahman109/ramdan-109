@@ -362,19 +362,24 @@ def handle_admin_decision(call):
             bot.answer_callback_query(call.id, "❌ الحجز غير موجود")
             return
         
-        print(f"📋 Booking found: {booking['booking_code']} - {booking['name']}")
+        # تحويل sqlite3.Row إلى dict للتعامل الآمن
+        booking_dict = {}
+        for key in booking.keys():
+            booking_dict[key] = booking[key]
+        
+        print(f"📋 Booking found: {booking_dict.get('booking_code', 'unknown')} - {booking_dict.get('name', 'unknown')}")
         
         if action == 'approve':
             # قبول الدفع
-            booking = approve_booking(booking_id)
+            booking_result = approve_booking(booking_id)
             
-            if booking['is_attending']:
-                booking = generate_ticket_for_booking(booking)
-                send_ticket_message(booking)
+            if booking_result['is_attending']:
+                booking_result = generate_ticket_for_booking(booking_result)
+                send_ticket_message(booking_result)
                 response_text = "✅ تم قبول الدفع وإرسال التذكرة للمستخدم"
                 admin_message = "✅ **تم قبول الدفع** وتم إرسال التذكرة"
             else:
-                send_thank_you_message(booking)
+                send_thank_you_message(booking_result)
                 response_text = "✅ تم قبول المساهمة وإرسال رسالة الشكر"
                 admin_message = "✅ **تم قبول المساهمة** وتم إرسال رسالة الشكر"
             
@@ -402,8 +407,8 @@ def handle_admin_decision(call):
             
         elif action == 'reject':
             # رفض الدفع
-            booking = reject_booking(booking_id)
-            send_rejected_message(booking)
+            booking_result = reject_booking(booking_id)
+            send_rejected_message(booking_result)
             response_text = "❌ تم رفض الدفع وإشعار المستخدم"
             admin_message = "❌ **تم رفض الدفع** وتم إشعار المستخدم"
             
