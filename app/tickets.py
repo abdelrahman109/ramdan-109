@@ -5,16 +5,36 @@ from app.utils import ticket_label
 
 ASSET_LOGO = "assets/logo109.png"
 ASSET_TEMPLATE = "assets/ticket_template.png"
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
-def _font(size: int):
+# مسارات خط Arial Bold في أنظمة مختلفة
+FONT_PATHS = [
+    "/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf",  # Linux (MS Core Fonts)
+    "/usr/share/fonts/truetype/arial/arialbd.ttf",            # Linux بديل
+    "C:/Windows/Fonts/arialbd.ttf",                            # Windows
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",      # Mac
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",   # DejaVu Bold (بديل)
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",  # Liberation Bold (بديل)
+    "/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf",          # Ubuntu Bold (بديل)
+]
+
+def _font(size: int, bold=True):
+    """تحميل خط Arial Bold"""
+    font_path = None
+    for path in FONT_PATHS:
+        if os.path.exists(path):
+            font_path = path
+            break
+    
     try:
-        return ImageFont.truetype(FONT_PATH, size=size)
+        if font_path:
+            return ImageFont.truetype(font_path, size=size)
+        else:
+            return ImageFont.load_default()
     except Exception:
         return ImageFont.load_default()
 
 def create_ticket_image(booking, qr_image_path, out_path):
-    """إنشاء صورة التذكرة مع توسيط كل النصوص"""
+    """إنشاء صورة التذكرة مع توسيط كل النصوص بخط Arial Bold"""
     
     # فتح القالب أو إنشاء خلفية جديدة
     if os.path.exists(ASSET_TEMPLATE):
@@ -31,21 +51,24 @@ def create_ticket_image(booking, qr_image_path, out_path):
     # لوجو الدفعة (لو موجود)
     if os.path.exists(ASSET_LOGO):
         logo = Image.open(ASSET_LOGO).convert("RGBA")
-        logo.thumbnail((300, 300))
-        # توسيط اللوجو
-        img.paste(logo, ((1200 - logo.width) // 2, 80), logo)
+        logo.thumbnail((250, 250))
+        img.paste(logo, ((1200 - logo.width) // 2, 60), logo)
     
-    # تحديد الأحجام
-    title_font = _font(48)      # للعنوان الرئيسي
-    name_font = _font(36)        # للاسم
-    body_font = _font(32)        # للنصوص العادية
-    small_font = _font(24)       # للنصوص الصغيرة
+    # تحديد الأحجام - كلها Arial Bold
+    title_font1 = _font(44)      # Arial Bold 44 للسطر الأول
+    title_font2 = _font(40)      # Arial Bold 40 للسطر الثاني
+    name_font = _font(36)        # Arial Bold 36 للاسم
+    body_font = _font(32)        # Arial Bold 32 للنصوص العادية
+    small_font = _font(24)       # Arial Bold 24 للنصوص الصغيرة
     
-    y = 400  # بداية الكتابة بعد اللوجو
+    y = 320  # بداية الكتابة بعد اللوجو
     
-    # اسم الحدث - في النص
-    draw.text((600, y), EVENT_NAME, fill="#7a5a12", font=title_font, anchor="mt")
-    y += 80
+    # العنوان على سطرين - في النص
+    draw.text((600, y), "حفل إفطار وتكريم", fill="#7a5a12", font=title_font1, anchor="mt")
+    y += 55
+    draw.text((600, y), "أسر شهداء الدفعة 109", fill="#7a5a12", font=title_font2, anchor="mt")
+    draw.text((600, y + 35), "كليات ومعاهد عسكرية", fill="#7a5a12", font=title_font2, anchor="mt")
+    y += 100
     
     # اسم الشخص - في النص
     draw.text((600, y), f"الاسم: {booking['name']}", fill="black", font=name_font, anchor="mt")
@@ -73,9 +96,8 @@ def create_ticket_image(booking, qr_image_path, out_path):
     
     # QR Code - في النص
     if os.path.exists(qr_image_path):
-        qr = Image.open(qr_image_path).convert("RGB").resize((360, 360))
-        # توسيط QR
-        img.paste(qr, ((1200 - 360) // 2, 960))
+        qr = Image.open(qr_image_path).convert("RGB").resize((350, 350))
+        img.paste(qr, ((1200 - 350) // 2, 960))
     
     # النص السفلي - في النص
     draw.text((600, 1380), "التذكرة صالحة لدخول مرة واحدة فقط", fill="#8a0000", font=body_font, anchor="mt")
