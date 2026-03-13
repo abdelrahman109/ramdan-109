@@ -3,11 +3,12 @@ import telebot
 import traceback
 from app.config import TELEGRAM_BOT_TOKEN, ADMIN_CHAT_IDS, EVENT_NAME, EVENT_TIME, EVENT_LOCATION, EVENT_MAP, EVENT_PRE_ARRIVAL_TEXT, BASE_URL
 from app.utils import ticket_label
+from app.constants import PRICE_EXTRA_MEAL, PRICE_PIN_MEDAL
 
 _bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN) if TELEGRAM_BOT_TOKEN else None
 
 def notify_admin_new_proof(booking):
-    """إرسال إشعار للأدمن مع صورة الإيصال وأزرار قبول/رفض"""
+    """إرسال إشعار للأدمن مع صورة الإيصال وأزرار قبول/رفض وتفاصيل الحجز"""
     if not _bot:
         return
     
@@ -20,17 +21,29 @@ def notify_admin_new_proof(booking):
         payment_method = booking['payment_method'] if 'payment_method' in booking.keys() else 'غير معروف'
         booking_code = booking['booking_code'] if 'booking_code' in booking.keys() else 'غير معروف'
         booking_id = booking['id'] if 'id' in booking.keys() else 0
+        is_attending = booking['is_attending'] if 'is_attending' in booking.keys() else 0
+        
+        # تفاصيل إضافية للحضور
+        extra_people = booking['extra_people'] if 'extra_people' in booking.keys() else 0
+        pin_medal = booking['pin_medal'] if 'pin_medal' in booking.keys() else 0
+        
+        # بناء نص التفاصيل الإضافية
+        extra_details = ""
+        if is_attending:
+            extra_details = f"\n👥 أفراد إضافيين: {extra_people}"
+            extra_details += f"\n🎖️ بروش + ميدالية: {'نعم' if pin_medal else 'لا'}"
         
         # نص الرسالة
         caption = (
-            f"📌 طلب دفع جديد\n\n"
-            f"👤 الاسم: {name}\n"
-            f"📞 الهاتف: {phone}\n"
-            f"🎫 نوع التذكرة: {ticket_label(ticket_type)}\n"
-            f"💰 المبلغ: {amount} جنيه\n"
-            f"💳 طريقة الدفع: {payment_method}\n"
-            f"🆔 الكود: {booking_code}\n\n"
-            f"رابط المراجعة: {BASE_URL}/admin/bookings/{booking_id}"
+            f"📌 **طلب دفع جديد**\n\n"
+            f"👤 **الاسم:** {name}\n"
+            f"📞 **الهاتف:** {phone}\n"
+            f"🎫 **نوع التذكرة:** {ticket_label(ticket_type)}\n"
+            f"💰 **المبلغ:** {amount} جنيه\n"
+            f"💳 **طريقة الدفع:** {payment_method}\n"
+            f"🆔 **الكود:** {booking_code}\n"
+            f"{extra_details}\n\n"
+            f"🔗 **رابط المراجعة:** {BASE_URL}/admin/bookings/{booking_id}"
         )
         
         # أزرار القبول والرفض
@@ -50,10 +63,11 @@ def notify_admin_new_proof(booking):
                             admin_chat_id,
                             photo,
                             caption=caption,
-                            reply_markup=markup
+                            reply_markup=markup,
+                            parse_mode='Markdown'
                         )
                 else:
-                    _bot.send_message(admin_chat_id, caption + "\n\n⚠️ لا توجد صورة إيصال", reply_markup=markup)
+                    _bot.send_message(admin_chat_id, caption + "\n\n⚠️ لا توجد صورة إيصال", reply_markup=markup, parse_mode='Markdown')
             except Exception as e:
                 print(f"Error sending to admin {admin_chat_id}: {e}")
     except Exception as e:
@@ -91,21 +105,36 @@ def send_ticket_message(booking):
         ticket_type = booking['ticket_type'] if 'ticket_type' in booking.keys() else 'unknown'
         amount = booking['amount'] if 'amount' in booking.keys() else 0
         ticket_image_path = booking['ticket_image_path'] if 'ticket_image_path' in booking.keys() else None
+        is_attending = booking['is_attending'] if 'is_attending' in booking.keys() else 0
+        
+        # تفاصيل إضافية للحضور
+        extra_people = booking['extra_people'] if 'extra_people' in booking.keys() else 0
+        pin_medal = booking['pin_medal'] if 'pin_medal' in booking.keys() else 0
+        
+        # بناء نص التفاصيل الإضافية
+        extra_details = ""
+        if is_attending and (extra_people > 0 or pin_medal):
+            extra_details = "\n📋 **تفاصيل الحجز:**"
+            if extra_people > 0:
+                extra_details += f"\n   • أفراد إضافيين: {extra_people}"
+            if pin_medal:
+                extra_details += f"\n   • بروش + ميدالية: نعم"
         
         msg = (
-            "🎉 تم تأكيد الدفع بنجاح\n\n"
+            f"🎉 **تم تأكيد الدفع بنجاح**\n\n"
             f"🎟 {EVENT_NAME} 🇪🇬\n\n"
             "━━━━━━━━━━━━━━━\n\n"
-            f"🎫 نوع التذكرة\n{ticket_label(ticket_type)}\n\n"
-            f"💰 قيمة التذكرة\n{amount} جنيه\n\n"
-            f"🕠 موعد الحفل\n{EVENT_TIME}\n\n"
+            f"🎫 **نوع التذكرة**\n{ticket_label(ticket_type)}\n"
+            f"💰 **قيمة التذكرة**\n{amount} جنيه\n"
+            f"{extra_details}\n\n"
+            f"🕠 **موعد الحفل**\n{EVENT_TIME}\n\n"
             f"⏰ {EVENT_PRE_ARRIVAL_TEXT}\n\n"
-            f"📍 مكان الحفل\n{EVENT_LOCATION}\n{EVENT_MAP}\n\n"
+            f"📍 **مكان الحفل**\n{EVENT_LOCATION}\n{EVENT_MAP}\n\n"
             "━━━━━━━━━━━━━━━\n\n"
             "📲 يرجى الاحتفاظ بالـ QR Code لإبرازه عند الدخول.\n"
             "⚠️ التذكرة صالحة لدخول مرة واحدة فقط."
         )
-        _bot.send_message(chat_id, msg)
+        _bot.send_message(chat_id, msg, parse_mode='Markdown')
         
         if ticket_image_path and os.path.exists(ticket_image_path):
             with open(ticket_image_path, "rb") as f:
@@ -127,7 +156,8 @@ def send_thank_you_message(booking):
         if chat_id:
             _bot.send_message(
                 chat_id,
-                f"❤️ تم تأكيد المساهمة بنجاح\n\n{EVENT_NAME}\n\n💰 قيمة المساهمة\n{amount} جنيه\n\nنشكر دعمكم الكريم ومساهمتكم في هذا الحدث الإنساني.\nونسأل الله أن يجعلها في ميزان حسناتكم."
+                f"❤️ **تم تأكيد المساهمة بنجاح**\n\n{EVENT_NAME}\n\n💰 **قيمة المساهمة**\n{amount} جنيه\n\nنشكر دعمكم الكريم ومساهمتكم في هذا الحدث الإنساني.\nونسأل الله أن يجعلها في ميزان حسناتكم.",
+                parse_mode='Markdown'
             )
     except Exception as e:
         print(f"Error sending thank you: {e}")
@@ -140,7 +170,7 @@ def send_broadcast(chat_ids, message):
         return count
     for cid in chat_ids:
         try:
-            _bot.send_message(cid, message)
+            _bot.send_message(cid, message, parse_mode='Markdown')
             count += 1
         except Exception:
             pass
