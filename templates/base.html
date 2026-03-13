@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ EVENT_NAME }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
   <style>
@@ -37,6 +37,8 @@
       gap: 20px;
       flex-wrap: wrap;
       border: 1px solid rgba(255,215,0,0.3);
+      position: relative;
+      z-index: 1000;
     }
     
     .nav-link {
@@ -49,6 +51,9 @@
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
     
     .nav-link:hover {
@@ -58,6 +63,12 @@
     
     .nav-link.active {
       background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      transform: scale(1.05);
+    }
+    
+    /* خاص للماسح */
+    .nav-link.scanner {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
     }
     
     /* Cards */
@@ -219,6 +230,12 @@
       border: 2px solid #eee;
       border-radius: 10px;
       font-size: 1rem;
+      background: white;
+    }
+    
+    .filters input:focus, .filters select:focus {
+      outline: none;
+      border-color: #764ba2;
     }
     
     /* Actions */
@@ -250,6 +267,12 @@
       font-size: 2rem;
     }
     
+    h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.5rem;
+    }
+    
     /* Links */
     a {
       color: #764ba2;
@@ -259,6 +282,39 @@
     a:hover {
       text-decoration: underline;
     }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .navbar {
+        padding: 10px;
+        gap: 10px;
+      }
+      
+      .nav-link {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+      }
+      
+      .filters {
+        grid-template-columns: 1fr;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      h2 {
+        font-size: 1.5rem;
+      }
+      
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -266,19 +322,34 @@
     <!-- Navigation Bar -->
     <div class="navbar">
       <a href="{{ url_for('admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
-        🏠 الرئيسية
+        <span>🏠</span>
+        <span>الرئيسية</span>
       </a>
+      
       <a href="{{ url_for('admin_bookings') }}" class="nav-link {% if request.endpoint == 'admin_bookings' %}active{% endif %}">
-        📋 الحجوزات
+        <span>📋</span>
+        <span>الحجوزات</span>
       </a>
+      
       <a href="{{ url_for('admin_broadcast') }}" class="nav-link {% if request.endpoint == 'admin_broadcast' %}active{% endif %}">
-        📢 الرسائل الجماعية
+        <span>📢</span>
+        <span>الرسائل الجماعية</span>
       </a>
+      
+      <!-- زرار Scanner -->
+      <a href="{{ url_for('scanner_page') }}" class="nav-link scanner {% if request.endpoint == 'scanner_page' %}active{% endif %}" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+        <span>📱</span>
+        <span>الماسح الضوئي</span>
+      </a>
+      
       <a href="{{ url_for('export_bookings') }}" class="nav-link">
-        📥 تقرير CSV
+        <span>📥</span>
+        <span>تقرير CSV</span>
       </a>
+      
       <a href="{{ url_for('admin_logout') }}" class="nav-link" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); margin-right: auto;">
-        🚪 خروج
+        <span>🚪</span>
+        <span>خروج</span>
       </a>
     </div>
     
