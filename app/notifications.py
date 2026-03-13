@@ -41,7 +41,8 @@ def send_rejected_message(booking):
     """إرسال رسالة رفض للمستخدم"""
     if _bot and booking['telegram_chat_id']:
         try:
-            _bot.send_message(booking['telegram_chat_id'], "❌ لم يتم اعتماد صورة السداد الحالية. برجاء إعادة رفع صورة أوضح أو التواصل مع الإدارة.")
+            _bot.send_message(booking['telegram_chat_id'], 
+                "❌ لم يتم اعتماد صورة السداد الحالية. برجاء إعادة رفع صورة أوضح أو التواصل مع الإدارة.")
         except Exception as e:
             print(f"Error sending rejected: {e}")
 
@@ -75,7 +76,9 @@ def send_thank_you_message(booking):
     """إرسال رسالة شكر للمساهم"""
     if _bot and booking['telegram_chat_id']:
         try:
-            _bot.send_message(booking['telegram_chat_id'], f"❤️ تم تأكيد المساهمة بنجاح\n\n{EVENT_NAME}\n\n💰 قيمة المساهمة\n{booking['amount']} جنيه\n\nنشكر دعمكم الكريم ومساهمتكم في هذا الحدث الإنساني.\nونسأل الله أن يجعلها في ميزان حسناتكم.")
+            _bot.send_message(booking['telegram_chat_id'], 
+                f"❤️ تم تأكيد المساهمة بنجاح\n\n{EVENT_NAME}\n\n💰 قيمة المساهمة\n{booking['amount']} جنيه\n\n"
+                f"نشكر دعمكم الكريم ومساهمتكم في هذا الحدث الإنساني.\nونسأل الله أن يجعلها في ميزان حسناتكم.")
         except Exception as e:
             print(f"Error sending thank you: {e}")
 
