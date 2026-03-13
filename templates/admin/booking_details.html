@@ -1,104 +1,213 @@
 {% extends "base.html" %}
 {% block body %}
 <div class="nav">
-  <a href="{{ url_for('admin_bookings') }}">⬅️ رجوع للحجوزات</a>
-  <a href="{{ url_for('admin_dashboard') }}">🏠 الرئيسية</a>
+  <a href="{{ url_for('admin_bookings') }}" class="nav-link">⬅️ رجوع للحجوزات</a>
+  <a href="{{ url_for('admin_dashboard') }}" class="nav-link">🏠 الرئيسية</a>
 </div>
 
 <div class="card">
-  <h2>{{ booking.name }}</h2>
+  <h2>تفاصيل الحجز - {{ booking.booking_code }}</h2>
   
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-    <div>
-      <p><strong>🔢 الكود:</strong> {{ booking.booking_code }}</p>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+    <!-- العمود الأول -->
+    <div style="background: #f8f9ff; padding: 20px; border-radius: 15px;">
+      <h3 style="color: #764ba2; margin-bottom: 20px;">📋 معلومات أساسية</h3>
+      <p><strong>🔢 الكود:</strong> <span style="font-family: monospace; font-size: 1.2rem;">{{ booking.booking_code }}</span></p>
+      <p><strong>👤 الاسم:</strong> {{ booking.name }}</p>
       <p><strong>📞 الهاتف:</strong> {{ booking.phone }}</p>
-      <p><strong>🎫 نوع التذكرة:</strong> {{ ticket_label(booking.ticket_type) }}</p>
-      <p><strong>💰 القيمة:</strong> {{ booking.amount }} جنيه</p>
-      <p><strong>💳 طريقة الدفع:</strong> {{ payment_label(booking.payment_method) }}</p>
+      <p><strong>📅 تاريخ الإنشاء:</strong> {{ booking.created_at }}</p>
     </div>
-    <div>
-      <p><strong>📊 الحالة:</strong> 
-        {% if booking.status == 'pending_review' %}
-          <span class="badge warn">في انتظار المراجعة</span>
-        {% elif booking.status == 'paid' %}
-          <span class="badge ok">مدفوع</span>
-        {% elif booking.status == 'used' %}
-          <span class="badge">تم الدخول</span>
-        {% elif booking.status == 'rejected' %}
-          <span class="badge error">مرفوض</span>
-        {% elif booking.status == 'pending_proof' %}
-          <span class="badge warn">في انتظار الإثبات</span>
+    
+    <!-- العمود الثاني -->
+    <div style="background: #f8f9ff; padding: 20px; border-radius: 15px;">
+      <h3 style="color: #764ba2; margin-bottom: 20px;">🎫 معلومات التذكرة</h3>
+      <p><strong>🎫 نوع التذكرة:</strong> {{ ticket_label(booking.ticket_type) }}</p>
+      <p><strong>💰 المبلغ:</strong> <span style="color: #28a745; font-weight: bold; font-size: 1.2rem;">{{ booking.amount }} جنيه</span></p>
+      <p><strong>💳 طريقة الدفع:</strong> 
+        {% if booking.payment_method == 'instapay' %}
+          <span style="color: #0057e7; font-weight: bold;">InstaPay</span>
+        {% else %}
+          <span style="color: #ff4b2b; font-weight: bold;">محفظة إلكترونية</span>
         {% endif %}
       </p>
-      <p><strong>👤 حضور:</strong> {{ "نعم" if booking.is_attending else "لا (مساهمة)" }}</p>
-      <p><strong>📅 تاريخ الإنشاء:</strong> {{ booking.created_at }}</p>
-      {% if booking.approved_at %}
-        <p><strong>✅ تاريخ القبول:</strong> {{ booking.approved_at }}</p>
-      {% endif %}
+      <p><strong>👤 حضور:</strong> 
+        {% if booking.is_attending %}
+          <span style="color: #28a745; font-weight: bold;">✅ نعم (حضور)</span>
+        {% else %}
+          <span style="color: #ff9800; font-weight: bold;">❤️ لا (مساهمة)</span>
+        {% endif %}
+      </p>
     </div>
   </div>
   
+  <!-- حالة الحجز -->
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px; margin-bottom: 30px; color: white;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h3 style="color: white; margin: 0;">📊 حالة الحجز</h3>
+      </div>
+      <div>
+        <span class="badge-large 
+          {% if booking.status == 'paid' %}ok
+          {% elif booking.status == 'pending_review' %}warn
+          {% elif booking.status == 'rejected' %}error
+          {% elif booking.status == 'used' %}used
+          {% elif booking.status == 'pending_proof' %}warn
+          {% endif %}">
+          {% if booking.status == 'paid' %}مدفوع
+          {% elif booking.status == 'pending_review' %}في انتظار المراجعة
+          {% elif booking.status == 'rejected' %}مرفوض
+          {% elif booking.status == 'used' %}تم الدخول
+          {% elif booking.status == 'pending_proof' %}في انتظار الإثبات
+          {% else %}{{ booking.status }}{% endif %}
+        </span>
+      </div>
+    </div>
+    {% if booking.approved_at %}
+      <p><strong>✅ تاريخ القبول:</strong> {{ booking.approved_at }}</p>
+    {% endif %}
+    {% if booking.rejected_at %}
+      <p><strong>❌ تاريخ الرفض:</strong> {{ booking.rejected_at }}</p>
+    {% endif %}
+    {% if booking.used_at %}
+      <p><strong>🚪 تاريخ الدخول:</strong> {{ booking.used_at }}</p>
+    {% endif %}
+  </div>
+  
+  <!-- صورة إثبات الدفع -->
   {% if booking.payment_proof_path %}
-    <div style="margin: 20px 0;">
-      <h3>📷 إثبات الدفع:</h3>
-      <img class="proof" src="{{ url_for('uploaded_payment_proof', filename=basename(booking.payment_proof_path)) }}" style="max-width: 400px; border: 2px solid #9a7b2f; border-radius: 10px;">
+    <div style="margin: 30px 0; text-align: center;">
+      <h3 style="color: #764ba2;">📷 إثبات الدفع</h3>
+      <img class="proof" src="{{ url_for('uploaded_payment_proof', filename=basename(booking.payment_proof_path)) }}" style="max-width: 500px; border: 3px solid #764ba2; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
     </div>
   {% endif %}
   
-  <div class="actions" style="margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px;">
-
+  <!-- صورة التذكرة -->
+  {% if booking.ticket_image_path %}
+    <div style="margin: 30px 0; text-align: center;">
+      <h3 style="color: #764ba2;">🎟 التذكرة</h3>
+      <img src="{{ url_for('static', filename='../' + booking.ticket_image_path) }}" style="max-width: 400px; border: 3px solid #764ba2; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+    </div>
+  {% endif %}
+  
+  <!-- الإجراءات الأساسية -->
+  <div class="actions" style="margin-top: 30px; border-top: 2px solid #eee; padding-top: 30px;">
+    
     {% if booking.status == 'pending_review' %}
-@@ -63,6 +16,7 @@ <h3>📷 إثبات الدفع:</h3>
+      <form method="post" action="{{ url_for('admin_approve_booking', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('✅ هل أنت متأكد من قبول هذا الدفع؟')">
+        <button type="submit" class="btn btn-success">✅ قبول الدفع</button>
+      </form>
+      
+      <form method="post" action="{{ url_for('admin_reject_booking', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('❌ هل أنت متأكد من رفض هذا الدفع؟')">
+        <button type="submit" class="btn btn-danger">❌ رفض الدفع</button>
       </form>
     {% endif %}
-
-    <!-- أزرار الحذف والإلغاء الجديدة -->
-    <div style="margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 20px;">
-      <h3 style="color: #666;">⚙️ إجراءات إدارية</h3>
-
-@@ -77,45 +31,3 @@ <h3 style="color: #666;">⚙️ إجراءات إدارية</h3>
+    
+    {% if booking.is_attending and booking.status in ['paid','used'] %}
+      <form method="post" action="{{ url_for('admin_resend_ticket', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('🔄 هل أنت متأكد من إعادة إرسال التذكرة؟')">
+        <button type="submit" class="btn btn-warning">🔄 إعادة إرسال التذكرة</button>
+      </form>
+    {% endif %}
+  </div>
+  
+  <!-- الإجراءات الإدارية (إلغاء وحذف) -->
+  <div style="margin-top: 40px; border-top: 2px dashed #dc3545; padding-top: 30px;">
+    <h3 style="color: #dc3545; margin-bottom: 20px;">⚠️ الإجراءات الإدارية</h3>
+    
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+      <!-- زر إلغاء الحجز -->
+      {% if booking.status != 'rejected' %}
+      <form method="post" action="{{ url_for('admin_reject_booking', booking_id=booking.id) }}" style="display:inline;" 
+            onsubmit="return confirm('⚠️ تحذير: هل أنت متأكد من إلغاء هذا الحجز؟\n\n• المستخدم سيتلقى إشعار بالإلغاء\n• حالة الحجز ستصبح مرفوض')">
+        <button type="submit" class="btn btn-cancel">⚠️ إلغاء الحجز</button>
+      </form>
+      {% endif %}
+      
+      <!-- زر مسح الحجز نهائياً -->
+      <form method="post" action="{{ url_for('admin_delete_booking', booking_id=booking.id) }}" style="display:inline;" 
+            onsubmit="return confirm('🚨 تحذير شديد: هل أنت متأكد من حذف هذا الحجز نهائياً؟\n\nهذا الإجراء لا يمكن التراجع عنه!\n• سيتم حذف جميع بيانات الحجز\n• سيتم حذف صور الإثبات\n• سيتم حذف سجلات الدخول\n\nهل أنت متأكد 100%؟')">
+        <button type="submit" class="btn btn-delete">🗑️ حذف الحجز نهائياً</button>
       </form>
     </div>
+    
+    <p style="color: #666; margin-top: 15px; font-size: 14px; background: #f8f9ff; padding: 10px; border-radius: 8px;">
+      <strong>ملاحظة:</strong> زر الإلغاء يغير حالة الحجز فقط (يرسله للمرفوضات)، أما زر الحذف فيزيل الحجز نهائياً من قاعدة البيانات مع جميع السجلات المرتبطة به.
+    </p>
   </div>
 </div>
 
 <style>
-.badge {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: bold;
-  background: #eee;
-}
-.badge.ok {
-  background: #d4edda;
-  color: #155724;
-}
-.badge.warn {
-  background: #fff3cd;
-  color: #856404;
-}
-.badge.error {
-  background: #f8d7da;
-  color: #721c24;
-}
-.actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.nav {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.nav a {
-  background: #f0f0f0;
-  padding: 10px 15px;
-  border-radius: 8px;
-  text-decoration: none;
-  color: #333;
-}
+  .nav {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+  }
+  .nav-link {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  .nav-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  }
+  .badge-large {
+    display: inline-block;
+    padding: 10px 25px;
+    border-radius: 30px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: white;
+  }
+  .badge-large.ok {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  }
+  .badge-large.warn {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  }
+  .badge-large.error {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+  .badge-large.used {
+    background: linear-gradient(135deg, #6b8cff 0%, #4158d0 100%);
+  }
+  .btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  }
+  .btn-success {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  }
+  .btn-danger {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+  .btn-warning {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  }
+  .btn-cancel {
+    background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
+  }
+  .btn-delete {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  }
+  .actions {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
 </style>
 {% endblock %}
