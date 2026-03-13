@@ -7,7 +7,7 @@ from app.config import TELEGRAM_BOT_TOKEN, EVENT_NAME, EVENT_TIME, EVENT_PRE_ARR
 from app.constants import TICKET_FULL, TICKET_CONTRIBUTION, PRICE_BASE_ATTENDANCE, PRICE_EXTRA_MEAL, PRICE_PIN_MEDAL, PAY_INSTAPAY, PAY_WALLET
 from app.db import init_db
 from app.utils import normalize_phone, is_valid_phone
-from app.services import set_session, get_session, clear_session, create_booking, update_payment_proof, get_booking_by_code, get_booking_by_id
+from app.services import set_session, get_session, clear_session, create_booking, update_payment_proof, get_booking_by_code, get_booking_by_id, get_pin_medal_stats, check_pin_medal_available
 from app.storage import payment_proof_path
 from app.notifications import notify_admin_new_proof, send_ticket_message, send_thank_you_message, send_rejected_message
 from app.services import approve_booking, reject_booking, generate_ticket_for_booking
@@ -54,12 +54,22 @@ def extra_people_keyboard():
     return kb
 
 def pin_medal_keyboard():
-    """كيبورد اختيار البروش والميدالية"""
+    """كيبورد اختيار البروش والميدالية (مع التحقق من العدد)"""
     kb = types.InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        types.InlineKeyboardButton(f"✅ نعم (+{PRICE_PIN_MEDAL} جنيه)", callback_data="pin:yes"),
-        types.InlineKeyboardButton("❌ لا", callback_data="pin:no"),
-    )
+    
+    # التحقق من وجود بروشات متاحة
+    pin_stats = get_pin_medal_stats()
+    
+    if pin_stats['remaining'] > 0:
+        kb.add(
+            types.InlineKeyboardButton(f"✅ نعم (+{PRICE_PIN_MEDAL} جنيه) - متبقي {pin_stats['remaining']}", callback_data="pin:yes"),
+            types.InlineKeyboardButton("❌ لا", callback_data="pin:no"),
+        )
+    else:
+        kb.add(
+            types.InlineKeyboardButton("❌ نفذت الكمية (غير متاح)", callback_data="pin:soldout"),
+            types.InlineKeyboardButton("❌ لا", callback_data="pin:no"),
+        )
     return kb
 
 def payment_method_keyboard():
@@ -85,12 +95,15 @@ def payment_info_text():
     )
 
 def ticket_types_text():
+    pin_stats = get_pin_medal_stats()
+    pin_info = f" (متبقي {pin_stats['remaining']})" if pin_stats['remaining'] > 0 else " (نفذت الكمية)"
+    
     return (
         "أنواع التذاكر:\n\n"
         f"1) 🎫 **حضور الحفل**\n"
         f"   • مساهمة وجبة أسر الشهداء: 150 جنيه\n"
         f"   • وجبة (لكل شخص): {PRICE_EXTRA_MEAL} جنيه\n"
-        f"   • بروش + ميدالية (اختياري): {PRICE_PIN_MEDAL} جنيه\n\n"
+        f"   • بروش + ميدالية: {PRICE_PIN_MEDAL} جنيه{pin_info}\n\n"
         f"   مثال: أنت + فرد = 150 + (2×{PRICE_EXTRA_MEAL}) = {150 + (2 * PRICE_EXTRA_MEAL)} جنيه\n\n"
         f"2) ❤️ **مساهمة بدون حضور**\n"
         f"   • اكتب المبلغ اللي تحبه"
@@ -144,11 +157,14 @@ def on_ticket(c):
                 "pin_medal": False
             })
             
+            pin_stats = get_pin_medal_stats()
+            pin_info = f" (متبقي {pin_stats['remaining']})" if pin_stats['remaining'] > 0 else " (نفذت الكمية)"
+            
             price_info = (
                 f"🎫 **حضور الحفل**\n\n"
                 f"💰 مساهمة وجبة أسر الشهداء: 150 جنيه\n"
                 f"🍽️ وجبة (لكل شخص): {PRICE_EXTRA_MEAL} جنيه\n"
-                f"🎖️ بروش + ميدالية: {PRICE_PIN_MEDAL} جنيه (اختياري)\n\n"
+                f"🎖️ بروش + ميدالية: {PRICE_PIN_MEDAL} جنيه{pin_info}\n\n"
                 f"**ملاحظة:** كل فرد (أساسي أو إضافي) له وجبة بـ {PRICE_EXTRA_MEAL} جنيه\n"
                 f"الضيوف من الدرجة الأولى (زوجة - ابن - ابنة)\n\n"
                 f"الآن اختر عدد الأفراد الإضافيين:"
@@ -186,7 +202,7 @@ def on_extra_people(c):
             f"✅ **تفاصيل الحجز:**\n\n"
             f"{details}\n"
             f"💰 **المبلغ الحالي: {current_total} جنيه**\n\n"
-            f"🎖️ هل تريد إضافة البروش والميدالية (بـ {PRICE_PIN_MEDAL} جنيه)؟"
+            f"🎖️ هل تريد إضافة البروش والميدالية؟"
         )
         bot.send_message(c.message.chat.id, msg, reply_markup=pin_medal_keyboard())
         bot.answer_callback_query(c.id)
@@ -198,6 +214,12 @@ def on_extra_people(c):
 def on_pin_medal(c):
     try:
         pin_choice = c.data.split(":", 1)[1]
+        
+        # لو اختار "soldout" ننبهه ونرجع
+        if pin_choice == "soldout":
+            bot.answer_callback_query(c.id, "عذراً، نفذت كمية البروشات والميداليات", show_alert=True)
+            return
+        
         session = get_session(c.message.chat.id)
         data = session["data"]
         
@@ -252,17 +274,21 @@ def on_payment(c):
         print(f"Creating booking for {data['name']} with amount {data['amount']}")
         print(f"Extra people: {extra_people}, Pin medal: {pin_medal}")
         
-        # إنشاء الحجز
-        booking = create_booking(
-            chat_id=c.message.chat.id,
-            name=data["name"],
-            phone=data["phone"],
-            ticket_type=data["ticket_type"],
-            amount=data["amount"],
-            payment_method=payment_method,
-            extra_people=extra_people,
-            pin_medal=pin_medal
-        )
+        try:
+            # إنشاء الحجز
+            booking = create_booking(
+                chat_id=c.message.chat.id,
+                name=data["name"],
+                phone=data["phone"],
+                ticket_type=data["ticket_type"],
+                amount=data["amount"],
+                payment_method=payment_method,
+                extra_people=extra_people,
+                pin_medal=pin_medal
+            )
+        except Exception as e:
+            bot.answer_callback_query(c.id, str(e), show_alert=True)
+            return
         
         if not booking:
             bot.answer_callback_query(c.id, "فشل في إنشاء الحجز")
