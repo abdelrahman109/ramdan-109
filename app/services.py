@@ -11,20 +11,37 @@ def create_booking(chat_id, name, phone, ticket_type, amount, payment_method, ex
     code = generate_booking_code()
     ts = now_str()
     with connect() as conn:
-        conn.execute('''
-            INSERT INTO bookings (
-                telegram_chat_id, booking_code, name, phone, ticket_type, amount,
-                payment_method, status, is_attending, extra_people, pin_medal, 
-                created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            chat_id, code, name, phone, ticket_type, amount, payment_method, 
-            STATUS_PENDING_PROOF, 
-            1 if TICKETS[ticket_type]["attending"] else 0,
-            extra_people, 
-            1 if pin_medal else 0,
-            ts, ts
-        ))
+        # التأكد من وجود الأعمدة في قاعدة البيانات
+        try:
+            conn.execute('''
+                INSERT INTO bookings (
+                    telegram_chat_id, booking_code, name, phone, ticket_type, amount,
+                    payment_method, status, is_attending, extra_people, pin_medal, 
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                chat_id, code, name, phone, ticket_type, amount, payment_method, 
+                STATUS_PENDING_PROOF, 
+                1 if TICKETS[ticket_type]["attending"] else 0,
+                extra_people, 
+                1 if pin_medal else 0,
+                ts, ts
+            ))
+        except Exception as e:
+            # إذا فشل الإدخال بسبب عدم وجود الأعمدة الجديدة، استخدم الاستعلام القديم
+            print(f"Warning: Using legacy booking insert: {e}")
+            conn.execute('''
+                INSERT INTO bookings (
+                    telegram_chat_id, booking_code, name, phone, ticket_type, amount,
+                    payment_method, status, is_attending, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                chat_id, code, name, phone, ticket_type, amount, payment_method, 
+                STATUS_PENDING_PROOF, 
+                1 if TICKETS[ticket_type]["attending"] else 0,
+                ts, ts
+            ))
+            
         return conn.execute("SELECT * FROM bookings WHERE booking_code = ?", (code,)).fetchone()
 
 def get_booking_by_code(code):
