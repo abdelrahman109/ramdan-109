@@ -11,30 +11,29 @@
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         min-height: 100vh;
         font-family: 'Arial', sans-serif;
-        padding: 15px;
+        padding: 10px;
     }
     
     .scanner-container {
-        width: 100%;
-        max-width: 1200px;
+        max-width: 500px;
         margin: 0 auto;
     }
     
-    /* Stats Dashboard */
+    /* Stats Dashboard - مصغر للموبايل */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 15px;
-        margin-bottom: 20px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 15px;
     }
     
     .stat-card {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
-        border-radius: 15px;
-        padding: 20px 10px;
+        border-radius: 12px;
+        padding: 12px 5px;
         text-align: center;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         border: 1px solid rgba(255,215,0,0.3);
     }
     
@@ -54,18 +53,18 @@
     }
     
     .stat-icon {
-        font-size: 2rem;
-        margin-bottom: 5px;
+        font-size: 1.5rem;
+        margin-bottom: 3px;
     }
     
     .stat-label {
-        font-size: 1rem;
+        font-size: 0.8rem;
         opacity: 0.9;
-        margin-bottom: 5px;
+        margin-bottom: 2px;
     }
     
     .stat-value {
-        font-size: 2rem;
+        font-size: 1.5rem;
         font-weight: bold;
     }
     
@@ -74,69 +73,30 @@
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
         border-radius: 20px;
-        padding: 25px;
+        padding: 20px;
         margin-bottom: 20px;
-        box-shadow: 0 15px 30px rgba(0,0,0,0.2);
-        border: 1px solid rgba(255,215,0,0.3);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: 2px solid rgba(255,215,0,0.3);
     }
     
     .scanner-header {
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
     
     .scanner-title {
         color: #764ba2;
-        font-size: 2rem;
+        font-size: 1.8rem;
         margin-bottom: 10px;
-    }
-    
-    /* Quick Actions */
-    .quick-actions {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-    
-    .action-btn {
-        padding: 15px 10px;
-        border: none;
-        border-radius: 12px;
-        background: white;
-        box-shadow: 0 5px 12px rgba(0,0,0,0.1);
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.9rem;
-        border: 1px solid #eee;
-        transition: all 0.3s ease;
-    }
-    
-    .action-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        border-color: #764ba2;
-    }
-    
-    .action-icon {
-        font-size: 2rem;
-    }
-    
-    .action-label {
-        font-weight: bold;
-        color: #333;
     }
     
     /* Scanner Preview */
     .scanner-preview {
         background: #1a1a2e;
         border-radius: 15px;
-        padding: 15px;
-        margin-bottom: 20px;
-        border: 2px solid #764ba2;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 3px solid #764ba2;
     }
     
     #reader {
@@ -148,69 +108,56 @@
     #reader video {
         border-radius: 10px;
         width: 100%;
-        max-height: 400px;
+        max-height: 350px;
         object-fit: cover;
     }
     
-    /* Manual Input - محسن */
+    /* Manual Input */
     .manual-input {
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        margin-top: 20px;
-        width: 100%;
+        gap: 10px;
+        margin-top: 15px;
     }
     
     .manual-input input {
         width: 100%;
-        padding: 18px 20px;
+        padding: 15px;
         border: 2px solid #764ba2;
-        border-radius: 15px;
-        font-size: 1.2rem;
+        border-radius: 12px;
+        font-size: 1rem;
         background: white;
         text-align: center;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
     
     .manual-input input:focus {
         outline: none;
         border-color: #43e97b;
-        box-shadow: 0 5px 20px rgba(67, 233, 123, 0.3);
-    }
-    
-    .manual-input input::placeholder {
-        color: #999;
-        font-size: 1rem;
     }
     
     .manual-input button {
         width: 100%;
-        padding: 18px 20px;
+        padding: 15px;
         background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         color: white;
         border: none;
-        border-radius: 15px;
-        font-size: 1.3rem;
+        border-radius: 12px;
+        font-size: 1.2rem;
         font-weight: bold;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     }
     
     .manual-input button:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-    }
-    
-    .manual-input button:active {
-        transform: translateY(0);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     }
     
     /* Result Display */
     .result-card {
         border-radius: 15px;
-        padding: 25px;
-        margin-top: 20px;
+        padding: 20px;
+        margin-top: 15px;
         box-shadow: 0 5px 20px rgba(0,0,0,0.1);
     }
     
@@ -236,15 +183,15 @@
     }
     
     .result-title {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
         font-weight: bold;
         text-align: center;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
     }
     
     .result-details {
-        font-size: 1.2rem;
-        line-height: 2;
+        font-size: 1rem;
+        line-height: 1.6;
         text-align: center;
     }
     
@@ -252,7 +199,7 @@
         display: inline-block;
         padding: 8px 20px;
         border-radius: 30px;
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: bold;
         margin-top: 10px;
     }
@@ -262,15 +209,15 @@
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
         border-radius: 20px;
-        padding: 20px;
+        padding: 15px;
         box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         border: 1px solid rgba(255,215,0,0.3);
     }
     
     .recent-title {
         color: #764ba2;
-        font-size: 1.3rem;
-        margin-bottom: 15px;
+        font-size: 1.2rem;
+        margin-bottom: 10px;
         display: flex;
         align-items: center;
         gap: 8px;
@@ -279,26 +226,27 @@
     .scans-table {
         width: 100%;
         border-collapse: collapse;
+        font-size: 0.9rem;
     }
     
     .scans-table th {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 12px 10px;
-        font-size: 1rem;
+        padding: 8px 5px;
+        font-size: 0.85rem;
     }
     
     .scans-table td {
-        padding: 10px;
+        padding: 8px 5px;
         border-bottom: 1px solid #eee;
         text-align: right;
     }
     
     .scan-badge {
         display: inline-block;
-        padding: 4px 10px;
-        border-radius: 15px;
-        font-size: 0.85rem;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
         font-weight: bold;
         color: white;
     }
@@ -315,134 +263,9 @@
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     }
     
-    /* Responsive */
-    @media (max-width: 992px) {
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        
-        .quick-actions {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-    
-    @media (max-width: 768px) {
-        body {
-            padding: 10px;
-        }
-        
-        .scanner-section {
-            padding: 15px;
-        }
-        
-        .stat-card {
-            padding: 12px 5px;
-        }
-        
-        .stat-icon {
-            font-size: 1.5rem;
-        }
-        
-        .stat-value {
-            font-size: 1.3rem;
-        }
-        
-        .stat-label {
-            font-size: 0.8rem;
-        }
-        
-        .scanner-title {
-            font-size: 1.5rem;
-        }
-        
-        .action-btn {
-            padding: 10px 5px;
-        }
-        
-        .action-icon {
-            font-size: 1.5rem;
-        }
-        
-        .action-label {
-            font-size: 0.8rem;
-        }
-        
-        .manual-input input {
-            padding: 15px;
-            font-size: 1rem;
-        }
-        
-        .manual-input button {
-            padding: 15px;
-            font-size: 1.1rem;
-        }
-        
-        .result-title {
-            font-size: 1.3rem;
-        }
-        
-        .result-details {
-            font-size: 1rem;
-        }
-        
-        .recent-title {
-            font-size: 1rem;
-        }
-        
-        .scans-table th,
-        .scans-table td {
-            font-size: 0.8rem;
-            padding: 8px 5px;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .stats-grid {
-            gap: 5px;
-        }
-        
-        .stat-card {
-            padding: 8px 3px;
-        }
-        
-        .stat-icon {
-            font-size: 1.2rem;
-        }
-        
-        .stat-value {
-            font-size: 1rem;
-        }
-        
-        .stat-label {
-            font-size: 0.7rem;
-        }
-        
-        .quick-actions {
-            gap: 5px;
-        }
-        
-        .action-btn {
-            padding: 8px 3px;
-        }
-        
-        .action-icon {
-            font-size: 1.2rem;
-        }
-        
-        .action-label {
-            font-size: 0.7rem;
-        }
-        
-        .manual-input input {
-            padding: 12px;
-            font-size: 0.9rem;
-        }
-        
-        .manual-input button {
-            padding: 12px;
-            font-size: 1rem;
-        }
+    /* إخفاء أزرار التحكم اليدوي */
+    .quick-actions {
+        display: none;
     }
 </style>
 
@@ -451,22 +274,22 @@
     <div class="stats-grid" id="statsDashboard">
         <div class="stat-card primary">
             <div class="stat-icon">🎟</div>
-            <div class="stat-label">إجمالي الحضور</div>
+            <div class="stat-label">الحضور</div>
             <div class="stat-value" id="totalAttendees">0</div>
         </div>
         <div class="stat-card success">
             <div class="stat-icon">✅</div>
-            <div class="stat-label">تم الدخول</div>
+            <div class="stat-label">دخل</div>
             <div class="stat-value" id="checkedIn">0</div>
         </div>
         <div class="stat-card warning">
             <div class="stat-icon">⏳</div>
-            <div class="stat-label">المتبقي</div>
+            <div class="stat-label">متبقي</div>
             <div class="stat-value" id="remaining">0</div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">📊</div>
-            <div class="stat-label">نسبة الدخول</div>
+            <div class="stat-label">نسبة</div>
             <div class="stat-value" id="percentage">0%</div>
         </div>
     </div>
@@ -477,34 +300,14 @@
             <div class="scanner-title">📱 ماسح QR</div>
         </div>
         
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <button class="action-btn" onclick="startScanner()">
-                <span class="action-icon">📷</span>
-                <span class="action-label">تشغيل</span>
-            </button>
-            <button class="action-btn" onclick="stopScanner()">
-                <span class="action-icon">⏹</span>
-                <span class="action-label">إيقاف</span>
-            </button>
-            <button class="action-btn" onclick="clearResult()">
-                <span class="action-icon">🔄</span>
-                <span class="action-label">مسح</span>
-            </button>
-            <button class="action-btn" onclick="refreshStats()">
-                <span class="action-icon">📊</span>
-                <span class="action-label">تحديث</span>
-            </button>
-        </div>
-        
         <!-- Scanner Preview -->
         <div class="scanner-preview">
             <div id="reader"></div>
         </div>
         
-        <!-- Manual Input - محسن وكبير -->
+        <!-- Manual Input -->
         <div class="manual-input">
-            <input type="text" id="manualToken" placeholder="الصق رمز التذكرة هنا">
+            <input type="text" id="manualToken" placeholder="أدخل كود التذكرة يدوياً">
             <button onclick="manualCheckin()">تسجيل دخول</button>
         </div>
         
@@ -520,7 +323,7 @@
     <div class="recent-scans">
         <div class="recent-title">
             <span>📋</span>
-            <span>آخر عمليات المسح</span>
+            <span>آخر العمليات</span>
         </div>
         <table class="scans-table">
             <thead>
@@ -532,7 +335,7 @@
             </thead>
             <tbody id="recentScansList">
                 <tr>
-                    <td colspan="3" style="text-align: center; padding: 15px;">جاري التحميل...</td>
+                    <td colspan="3" style="text-align: center; padding: 10px;">جاري التحميل...</td>
                 </tr>
             </tbody>
         </table>
@@ -544,18 +347,76 @@
 <script>
     let html5QrcodeScanner = null;
     let lastResult = null;
+    let isScanning = false;
     
     // Auto-refresh stats
     setInterval(refreshStats, 30000);
     
-    // Load initial data
+    // Load initial data and start scanner automatically
     document.addEventListener('DOMContentLoaded', function() {
         refreshStats();
         loadRecentScans();
+        // Start scanner automatically when page loads
+        setTimeout(startScanner, 500);
     });
     
-    // Start scanner
+    // Start scanner automatically with back camera
     function startScanner() {
+        if (isScanning) return;
+        isScanning = true;
+        
+        const html5QrCode = new Html5Qrcode("reader");
+        const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
+            let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+            let qrboxSize = Math.floor(minEdgeSize * 0.7);
+            return { width: qrboxSize, height: qrboxSize };
+        };
+        
+        html5QrCode.start(
+            { facingMode: "environment" },  // استخدام الكاميرا الخلفية
+            {
+                fps: 10,
+                qrbox: qrboxFunction,
+                aspectRatio: 1.0
+            },
+            (decodedText) => {
+                // Success callback - QR code found
+                if (lastResult === decodedText) return;
+                lastResult = decodedText;
+                
+                let token = extractToken(decodedText);
+                if (token) {
+                    checkinTicket(token);
+                } else {
+                    showResult('error', '❌', 'رمز غير صالح', 'لم نتمكن من قراءة رمز QR');
+                }
+                
+                // Auto stop and restart after successful scan
+                setTimeout(() => {
+                    html5QrCode.stop().then(() => {
+                        isScanning = false;
+                        // Restart after 2 seconds
+                        setTimeout(startScanner, 2000);
+                    }).catch(err => {
+                        console.log(err);
+                        isScanning = false;
+                    });
+                }, 1500);
+            },
+            (errorMessage) => {
+                // Error callback - ignore most errors
+                // console.log(errorMessage);
+            }
+        ).catch((err) => {
+            console.log("Error starting camera: ", err);
+            isScanning = false;
+            // If fails, try fallback after 3 seconds
+            setTimeout(startFallbackScanner, 3000);
+        });
+    }
+    
+    // Fallback scanner method
+    function startFallbackScanner() {
         if (html5QrcodeScanner) {
             html5QrcodeScanner.clear();
         }
@@ -573,15 +434,7 @@
         html5QrcodeScanner.render(onScanSuccess, onScanError);
     }
     
-    // Stop scanner
-    function stopScanner() {
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear();
-            html5QrcodeScanner = null;
-        }
-    }
-    
-    // Scan success
+    // Scan success for fallback
     function onScanSuccess(decodedText) {
         if (lastResult === decodedText) return;
         lastResult = decodedText;
@@ -595,7 +448,7 @@
     }
     
     function onScanError(error) {
-        console.log(error);
+        // console.log(error);
     }
     
     // Extract token from QR
@@ -628,8 +481,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     qr_token: token,
-                    gate_name: 'بوابة',  // قيمة افتراضية
-                    checked_in_by: 'موظف'  // قيمة افتراضية
+                    gate_name: 'بوابة',
+                    checked_in_by: 'موظف'
                 })
             });
             
@@ -737,7 +590,7 @@
                 });
                 list.innerHTML = html;
             } else {
-                list.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 15px;">لا توجد عمليات</td></tr>';
+                list.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 10px;">لا توجد عمليات</td></tr>';
             }
         } catch (error) {
             console.log('Error loading scans:', error);
