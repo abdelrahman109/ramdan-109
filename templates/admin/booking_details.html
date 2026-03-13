@@ -1,48 +1,121 @@
 {% extends "base.html" %}
 {% block body %}
-<div class="page-head">
-  <div>
-    <h1>تفاصيل الحجز</h1>
-    <p class="muted">مراجعة سريعة للحجز واتخاذ الإجراء المناسب</p>
+<div class="nav">
+  <a href="{{ url_for('admin_bookings') }}">⬅️ رجوع للحجوزات</a>
+  <a href="{{ url_for('admin_dashboard') }}">🏠 الرئيسية</a>
+</div>
+
+<div class="card">
+  <h2>{{ booking.name }}</h2>
+  
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div>
+      <p><strong>🔢 الكود:</strong> {{ booking.booking_code }}</p>
+      <p><strong>📞 الهاتف:</strong> {{ booking.phone }}</p>
+      <p><strong>🎫 نوع التذكرة:</strong> {{ ticket_label(booking.ticket_type) }}</p>
+      <p><strong>💰 القيمة:</strong> {{ booking.amount }} جنيه</p>
+      <p><strong>💳 طريقة الدفع:</strong> {{ payment_label(booking.payment_method) }}</p>
+    </div>
+    <div>
+      <p><strong>📊 الحالة:</strong> 
+        {% if booking.status == 'pending_review' %}
+          <span class="badge warn">في انتظار المراجعة</span>
+        {% elif booking.status == 'paid' %}
+          <span class="badge ok">مدفوع</span>
+        {% elif booking.status == 'used' %}
+          <span class="badge">تم الدخول</span>
+        {% elif booking.status == 'rejected' %}
+          <span class="badge error">مرفوض</span>
+        {% elif booking.status == 'pending_proof' %}
+          <span class="badge warn">في انتظار الإثبات</span>
+        {% endif %}
+      </p>
+      <p><strong>👤 حضور:</strong> {{ "نعم" if booking.is_attending else "لا (مساهمة)" }}</p>
+      <p><strong>📅 تاريخ الإنشاء:</strong> {{ booking.created_at }}</p>
+      {% if booking.approved_at %}
+        <p><strong>✅ تاريخ القبول:</strong> {{ booking.approved_at }}</p>
+      {% endif %}
+    </div>
+  </div>
+  
+  {% if booking.payment_proof_path %}
+    <div style="margin: 20px 0;">
+      <h3>📷 إثبات الدفع:</h3>
+      <img class="proof" src="{{ url_for('uploaded_payment_proof', filename=basename(booking.payment_proof_path)) }}" style="max-width: 400px; border: 2px solid #9a7b2f; border-radius: 10px;">
+    </div>
+  {% endif %}
+  
+  <div class="actions" style="margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px;">
+    
+    {% if booking.status == 'pending_review' %}
+      <form method="post" action="{{ url_for('admin_approve_booking', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('✅ هل أنت متأكد من قبول هذا الدفع؟')">
+        <button type="submit" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">✅ قبول الدفع</button>
+      </form>
+      
+      <form method="post" action="{{ url_for('admin_reject_booking', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('❌ هل أنت متأكد من رفض هذا الدفع؟')">
+        <button type="submit" style="background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">❌ رفض الدفع</button>
+      </form>
+    {% endif %}
+    
+    {% if booking.is_attending and booking.status in ['paid','used'] %}
+      <form method="post" action="{{ url_for('admin_resend_ticket', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('🔄 هل أنت متأكد من إعادة إرسال التذكرة؟')">
+        <button type="submit" style="background: #ffc107; color: black; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">🔄 إعادة إرسال التذكرة</button>
+      </form>
+    {% endif %}
+    
+    <div style="margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 20px;">
+      <h3 style="color: #666;">⚙️ إجراءات إدارية</h3>
+      
+      {% if booking.status != 'rejected' %}
+        <form method="post" action="{{ url_for('admin_reject_booking', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('❌ هل أنت متأكد من إلغاء هذا الحجز؟')">
+          <button type="submit" style="background: #ff9800; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">⚠️ إلغاء الحجز</button>
+        </form>
+      {% endif %}
+      
+      <form method="post" action="{{ url_for('admin_delete_booking', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('🚨 تحذير: هل أنت متأكد من حذف هذا الحجز نهائياً؟\nهذا الإجراء لا يمكن التراجع عنه!')">
+        <button type="submit" style="background: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">🗑️ حذف الحجز نهائياً</button>
+      </form>
+    </div>
   </div>
 </div>
 
-<div class="grid-two">
-  <section class="panel">
-    <h2>{{ booking.name }}</h2>
-    <div class="details-list">
-      <div><strong>الكود:</strong> {{ booking.booking_code }}</div>
-      <div><strong>الهاتف:</strong> {{ booking.phone }}</div>
-      <div><strong>نوع التذكرة:</strong> {{ ticket_label(booking.ticket_type) }}</div>
-      <div><strong>القيمة:</strong> {{ booking.amount }} جنيه</div>
-      <div><strong>طريقة الدفع:</strong> {{ payment_label(booking.payment_method) }}</div>
-      <div><strong>الحالة:</strong> <span class="status-pill">{{ booking.status }}</span></div>
-      <div><strong>حضور:</strong> {{ "نعم" if booking.is_attending else "لا" }}</div>
-    </div>
-
-    <div class="actions">
-      {% if booking.status == 'pending_review' %}
-        <form method="post" action="{{ url_for('admin_approve_booking', booking_id=booking.id) }}"><button type="submit">اعتماد الدفع</button></form>
-        <form method="post" action="{{ url_for('admin_reject_booking', booking_id=booking.id) }}"><button class="danger" type="submit">رفض الدفع</button></form>
-      {% endif %}
-      {% if booking.status not in ['used','cancelled'] %}
-        <form method="post" action="{{ url_for('admin_cancel_booking', booking_id=booking.id) }}" class="confirm-cancel-form">
-          <button class="danger" type="submit">إلغاء الحجز</button>
-        </form>
-      {% endif %}
-      {% if booking.is_attending and booking.status in ['paid','used'] %}
-        <form method="post" action="{{ url_for('admin_resend_ticket', booking_id=booking.id) }}"><button type="submit">إعادة إرسال التذكرة</button></form>
-      {% endif %}
-    </div>
-  </section>
-
-  <section class="panel">
-    <h3>إثبات الدفع</h3>
-    {% if booking.payment_proof_path %}
-      <img class="proof proof-large" src="{{ url_for('uploaded_payment_proof', filename=basename(booking.payment_proof_path)) }}">
-    {% else %}
-      <p class="muted">لا يوجد إيصال دفع مرفوع حتى الآن.</p>
-    {% endif %}
-  </section>
-</div>
+<style>
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  background: #eee;
+}
+.badge.ok {
+  background: #d4edda;
+  color: #155724;
+}
+.badge.warn {
+  background: #fff3cd;
+  color: #856404;
+}
+.badge.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.nav {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.nav a {
+  background: #f0f0f0;
+  padding: 10px 15px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #333;
+}
+</style>
 {% endblock %}
