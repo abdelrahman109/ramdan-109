@@ -38,18 +38,23 @@
   <div class="payment-card" style="border-top: 5px solid #0057e7;">
     <div class="payment-title">InstaPay</div>
     
-    <div class="payment-stats">
-      <div class="payment-stat">
-        <div class="stat-value">{{ stats.instapay.count }}</div>
-        <div class="stat-label">عدد العمليات</div>
+    <!-- عدد العمليات (حصر) -->
+    <div class="payment-count-box">
+      <div class="count-value">{{ stats.instapay.count }}</div>
+      <div class="count-label">عدد العمليات</div>
+    </div>
+    
+    <!-- قيمة الحضور والمساهمات -->
+    <div class="payment-values">
+      <div class="value-box">
+        <div class="value-amount">{{ stats.instapay.attendees_value }} جنيه</div>
+        <div class="value-label">قيمة الحضور</div>
+        <div class="value-count">({{ stats.instapay.attendees_count }} عملية)</div>
       </div>
-      <div class="payment-stat">
-        <div class="stat-value">{{ stats.instapay.attendees }}</div>
-        <div class="stat-label">حضور</div>
-      </div>
-      <div class="payment-stat">
-        <div class="stat-value">{{ stats.instapay.contributions }}</div>
-        <div class="stat-label">مساهمات</div>
+      <div class="value-box">
+        <div class="value-amount">{{ stats.instapay.contributions_value }} جنيه</div>
+        <div class="value-label">قيمة المساهمات</div>
+        <div class="value-count">({{ stats.instapay.contributions_count }} عملية)</div>
       </div>
     </div>
     
@@ -62,18 +67,23 @@
   <div class="payment-card" style="border-top: 5px solid #ff4b2b;">
     <div class="payment-title">محفظة إلكترونية</div>
     
-    <div class="payment-stats">
-      <div class="payment-stat">
-        <div class="stat-value">{{ stats.wallet.count }}</div>
-        <div class="stat-label">عدد العمليات</div>
+    <!-- عدد العمليات (حصر) -->
+    <div class="payment-count-box">
+      <div class="count-value">{{ stats.wallet.count }}</div>
+      <div class="count-label">عدد العمليات</div>
+    </div>
+    
+    <!-- قيمة الحضور والمساهمات -->
+    <div class="payment-values">
+      <div class="value-box">
+        <div class="value-amount">{{ stats.wallet.attendees_value }} جنيه</div>
+        <div class="value-label">قيمة الحضور</div>
+        <div class="value-count">({{ stats.wallet.attendees_count }} عملية)</div>
       </div>
-      <div class="payment-stat">
-        <div class="stat-value">{{ stats.wallet.attendees }}</div>
-        <div class="stat-label">حضور</div>
-      </div>
-      <div class="payment-stat">
-        <div class="stat-value">{{ stats.wallet.contributions }}</div>
-        <div class="stat-label">مساهمات</div>
+      <div class="value-box">
+        <div class="value-amount">{{ stats.wallet.contributions_value }} جنيه</div>
+        <div class="value-label">قيمة المساهمات</div>
+        <div class="value-count">({{ stats.wallet.contributions_count }} عملية)</div>
       </div>
     </div>
     
@@ -98,7 +108,7 @@
   </div>
   
   <!-- الضيوف مع/بدون إضافيين -->
-  <div class="guest-card">
+  <div class="guest-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
     <div class="guest-title">توزيع الضيوف</div>
     <div class="guest-stats">
       <div class="guest-stat">
@@ -255,18 +265,56 @@
     text-align: center;
   }
   
-  .payment-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+  /* عدد العمليات (حصر) */
+  .payment-count-box {
+    background: #f0f0f0;
+    border-radius: 15px;
+    padding: 15px;
+    text-align: center;
     margin-bottom: 20px;
   }
   
-  .payment-stat {
+  .count-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .count-label {
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
+  /* قيمة الحضور والمساهمات */
+  .payment-values {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .value-box {
     text-align: center;
-    padding: 10px;
+    padding: 15px;
     background: #f8f9ff;
     border-radius: 10px;
+  }
+  
+  .value-amount {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #28a745;
+  }
+  
+  .value-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 5px 0;
+  }
+  
+  .value-count {
+    font-size: 0.8rem;
+    color: #999;
   }
   
   .payment-total {
@@ -287,15 +335,10 @@
   }
   
   .guest-card {
-    background: white;
     border-radius: 20px;
     padding: 25px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     color: white;
-  }
-  
-  .guest-card:not([style*="background"]) {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   }
   
   .guest-title {
