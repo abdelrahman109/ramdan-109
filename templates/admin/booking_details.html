@@ -25,9 +25,21 @@
       
       {% if booking.ticket_type == 'full_package' %}
         <!-- تفاصيل الحضور -->
-        <p><strong>💰 السعر الأساسي:</strong> 150 جنيه</p>
-        <p><strong>👥 أفراد إضافيين:</strong> {{ booking.extra_people if booking.extra_people else 0 }}</p>
-        <p><strong>🎖️ بروش + ميدالية:</strong> {{ 'نعم' if booking.pin_medal else 'لا' }}</p>
+        <p><strong>💰 مساهمة وجبة أسر الشهداء:</strong> 150 جنيه</p>
+        <p><strong>👥 أفراد إضافيين:</strong> 
+          {% if booking.extra_people and booking.extra_people > 0 %}
+            {{ booking.extra_people }} فرد
+          {% else %}
+            لا يوجد
+          {% endif %}
+        </p>
+        <p><strong>🎖️ بروش + ميدالية:</strong> 
+          {% if booking.pin_medal and booking.pin_medal == 1 %}
+            <span style="color: #28a745; font-weight: bold;">✅ نعم</span>
+          {% else %}
+            <span style="color: #6c757d;">❌ لا</span>
+          {% endif %}
+        </p>
         <p><strong>💰 المبلغ الإجمالي:</strong> <span style="color: #28a745; font-weight: bold; font-size: 1.2rem;">{{ booking.amount }} جنيه</span></p>
       {% endif %}
       
@@ -216,6 +228,10 @@
     display: flex;
     gap: 15px;
     flex-wrap: wrap;
+  }
+  .proof {
+    max-width: 100%;
+    height: auto;
   }
 </style>
 {% endblock %}
