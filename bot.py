@@ -249,7 +249,6 @@ def on_payment(c):
         extra_people = data.get("extra_people", 0)
         pin_medal = data.get("pin_medal", False)
         
-        # طباعة للتأكد (لوج)
         print(f"Creating booking for {data['name']} with amount {data['amount']}")
         
         # إنشاء الحجز
@@ -333,6 +332,7 @@ def on_photo(message):
         update_payment_proof(booking["id"], path)
         booking = get_booking_by_code(booking["booking_code"])
         
+        # إرسال إشعار للأدمن مع الصورة والأزرار
         notify_admin_new_proof(booking)
         
         bot.reply_to(message, "تم استلام إثبات الدفع ✅\nسيتم مراجعته قريبًا.", reply_markup=main_reply_keyboard())
@@ -343,61 +343,97 @@ def on_photo(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith(('approve_', 'reject_')))
 def handle_admin_decision(call):
+    """معالج قرارات الأدمن من الأزرار"""
     try:
+        print(f"📌 Received callback: {call.data} from admin {call.from_user.id}")
+        
+        # التحقق أن المرسل هو أدمن
         if call.from_user.id not in ADMIN_CHAT_IDS:
-            bot.answer_callback_query(call.id, "غير مصرح لك بهذا الإجراء")
+            bot.answer_callback_query(call.id, "⛔ غير مصرح لك بهذا الإجراء")
             return
         
         action, booking_id_str = call.data.split('_')
         booking_id = int(booking_id_str)
+        print(f"🔍 Action: {action}, Booking ID: {booking_id}")
         
+        # جلب بيانات الحجز
         booking = get_booking_by_id(booking_id)
         if not booking:
-            bot.answer_callback_query(call.id, "الحجز غير موجود")
+            bot.answer_callback_query(call.id, "❌ الحجز غير موجود")
             return
         
+        print(f"📋 Booking found: {booking['booking_code']} - {booking['name']}")
+        
         if action == 'approve':
+            # قبول الدفع
             booking = approve_booking(booking_id)
             
             if booking['is_attending']:
                 booking = generate_ticket_for_booking(booking)
                 send_ticket_message(booking)
                 response_text = "✅ تم قبول الدفع وإرسال التذكرة للمستخدم"
+                admin_message = "✅ **تم قبول الدفع** وتم إرسال التذكرة"
             else:
                 send_thank_you_message(booking)
                 response_text = "✅ تم قبول المساهمة وإرسال رسالة الشكر"
+                admin_message = "✅ **تم قبول المساهمة** وتم إرسال رسالة الشكر"
             
+            # تعديل رسالة الأدمن
             try:
                 if call.message.caption:
+                    new_caption = call.message.caption + f"\n\n{admin_message}"
                     bot.edit_message_caption(
                         chat_id=call.message.chat.id,
                         message_id=call.message.message_id,
-                        caption=call.message.caption + "\n\n✅ **تم القبول**",
+                        caption=new_caption,
                         reply_markup=None
                     )
+                else:
+                    new_text = call.message.text + f"\n\n{admin_message}"
+                    bot.edit_message_text(
+                        chat_id=call.message.chat.id,
+                        message_id=call.message.message_id,
+                        text=new_text,
+                        reply_markup=None
+                    )
+                print("✅ Admin message updated successfully")
             except Exception as e:
-                print(f"Error editing admin message: {e}")
+                print(f"⚠️ Error editing admin message: {e}")
             
         elif action == 'reject':
+            # رفض الدفع
             booking = reject_booking(booking_id)
             send_rejected_message(booking)
             response_text = "❌ تم رفض الدفع وإشعار المستخدم"
+            admin_message = "❌ **تم رفض الدفع** وتم إشعار المستخدم"
             
+            # تعديل رسالة الأدمن
             try:
                 if call.message.caption:
+                    new_caption = call.message.caption + f"\n\n{admin_message}"
                     bot.edit_message_caption(
                         chat_id=call.message.chat.id,
                         message_id=call.message.message_id,
-                        caption=call.message.caption + "\n\n❌ **تم الرفض**",
+                        caption=new_caption,
                         reply_markup=None
                     )
+                else:
+                    new_text = call.message.text + f"\n\n{admin_message}"
+                    bot.edit_message_text(
+                        chat_id=call.message.chat.id,
+                        message_id=call.message.message_id,
+                        text=new_text,
+                        reply_markup=None
+                    )
+                print("✅ Admin message updated successfully")
             except Exception as e:
-                print(f"Error editing admin message: {e}")
+                print(f"⚠️ Error editing admin message: {e}")
         
+        # إرسال رد للمستخدم
         bot.answer_callback_query(call.id, response_text)
         
     except Exception as e:
-        print(f"Error in admin decision: {e}")
+        print(f"❌ Error in admin decision: {e}")
         traceback.print_exc()
         bot.answer_callback_query(call.id, f"حدث خطأ: {str(e)}")
 
