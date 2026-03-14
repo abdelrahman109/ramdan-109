@@ -2,6 +2,7 @@ import json
 import qrcode
 import time
 import sqlite3
+from datetime import datetime, timedelta
 from app.db import connect
 from app.constants import TICKETS, STATUS_PENDING_PROOF, STATUS_PAID, STATUS_REJECTED
 from app.utils import generate_booking_code, generate_token, now_str
@@ -41,6 +42,7 @@ def increment_pin_medal_delivered():
                 "UPDATE settings SET value=?, updated_at=? WHERE key='total_pin_medal_delivered'",
                 (str(new_value), now_str())
             )
+            print(f"✅ Pin medal delivered count increased to {new_value}")
             return new_value
     return 0
 
@@ -69,6 +71,62 @@ def get_total_guests_stats():
             'extra_people': extra_people,
             'total_guests': total_guests
         }
+
+# =============== دوال إلغاء الطلبات المعلقة ===============
+def cancel_expired_bookings():
+    """إلغاء الحجوزات التي مضى على إنشائها أكثر من 15 دقيقة ولم يتم رفع صورة الدفع"""
+    try:
+        with connect() as conn:
+            # حساب الوقت قبل 15 دقيقة
+            expiry_time = (datetime.now() - timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+            
+            # البحث عن الحجوزات المعلقة (pending_proof) التي مضى عليها 15 دقيقة
+            expired = conn.execute("""
+                SELECT * FROM bookings 
+                WHERE status='pending_proof' 
+                AND created_at < ?
+            """, (expiry_time,)).fetchall()
+            
+            cancelled_count = 0
+            for booking in expired:
+                # تحديث حالة الحجز إلى cancelled
+                conn.execute("""
+                    UPDATE bookings 
+                    SET status='cancelled', updated_at=? 
+                    WHERE id=?
+                """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), booking['id']))
+                
+                # تسجيل الإلغاء في admin_actions
+                conn.execute("""
+                    INSERT INTO admin_actions (booking_id, booking_code, action_type, admin_name, notes, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (booking['id'], booking['booking_code'], "auto_cancel", "system", "تم الإلغاء تلقائياً لعدم رفع إيصال الدفع خلال 15 دقيقة", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                
+                cancelled_count += 1
+                print(f"✅ Auto-cancelled booking {booking['booking_code']} - {booking['name']}")
+            
+            if cancelled_count > 0:
+                print(f"✅ Total {cancelled_count} expired bookings cancelled")
+            
+            return cancelled_count
+    except Exception as e:
+        print(f"❌ Error in cancel_expired_bookings: {e}")
+        return 0
+
+def get_expired_bookings_count():
+    """الحصول على عدد الحجوزات المنتهية (للعرض)"""
+    try:
+        with connect() as conn:
+            expiry_time = (datetime.now() - timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+            count = conn.execute("""
+                SELECT COUNT(*) as c FROM bookings 
+                WHERE status='pending_proof' 
+                AND created_at < ?
+            """, (expiry_time,)).fetchone()["c"]
+            return count
+    except Exception as e:
+        print(f"❌ Error in get_expired_bookings_count: {e}")
+        return 0
 
 # =============== دوال الحجوزات الأساسية ===============
 def create_booking(chat_id, name, phone, ticket_type, amount, payment_method, extra_people=0, pin_medal=False):
@@ -203,7 +261,7 @@ def checkin(qr_token, gate_name, checked_in_by):
         return result
     
     # محاولة التنفيذ مع إعادة المحاولة إذا كانت قاعدة البيانات مقفولة
-    max_retries = 5  # زودنا من 3 لـ 5
+    max_retries = 5
     for attempt in range(max_retries):
         try:
             with connect() as conn:
@@ -213,10 +271,18 @@ def checkin(qr_token, gate_name, checked_in_by):
                         (ts, gate_name, checked_in_by, ts, booking["id"])
                     )
                     
+                    # طباعة للتأكد من قيمة pin_medal
+                    print(f"🔍 DEBUG - Booking ID: {booking['id']}, Booking Code: {booking['booking_code']}")
+                    print(f"🔍 DEBUG - Pin medal value: {booking['pin_medal']}")
+                    print(f"🔍 DEBUG - Pin medal type: {type(booking['pin_medal'])}")
+                    
                     # لو التذكرة فيها بروش، زود العداد
                     if booking['pin_medal'] and booking['pin_medal'] == 1:
+                        print("🔍 DEBUG - Condition met, incrementing counter")
                         increment_pin_medal_delivered()
                         print(f"✅ Pin medal delivered count increased for booking {booking['booking_code']}")
+                    else:
+                        print("🔍 DEBUG - Condition NOT met")
                     
                     conn.execute(
                         "INSERT INTO checkins (booking_id, booking_code, checked_in_at, gate_name, checked_in_by, result) VALUES (?, ?, ?, ?, ?, ?)",
@@ -233,7 +299,7 @@ def checkin(qr_token, gate_name, checked_in_by):
         except sqlite3.OperationalError as e:
             if "database is locked" in str(e) and attempt < max_retries - 1:
                 print(f"⚠️ Database locked, retrying... ({attempt + 1}/{max_retries})")
-                time.sleep(0.5)  # انتظار نصف ثانية قبل إعادة المحاولة
+                time.sleep(0.5)
                 continue
             else:
                 print(f"❌ Database error after {attempt + 1} attempts: {e}")
