@@ -7,10 +7,11 @@ from app.config import TELEGRAM_BOT_TOKEN, EVENT_NAME, EVENT_TIME, EVENT_PRE_ARR
 from app.constants import TICKET_FULL, TICKET_CONTRIBUTION, PRICE_BASE_ATTENDANCE, PRICE_EXTRA_MEAL, PRICE_PIN_MEDAL, PAY_INSTAPAY, PAY_WALLET
 from app.db import init_db, connect
 from app.utils import normalize_phone, is_valid_phone
-from app.services import set_session, get_session, clear_session, create_booking, update_payment_proof, get_booking_by_code, get_booking_by_id, get_pin_medal_stats, check_pin_medal_available
+from app.services import set_session, get_session, clear_session, create_booking, update_payment_proof, get_booking_by_code, get_booking_by_id, get_pin_medal_stats, get_total_guests_stats
 from app.storage import payment_proof_path
 from app.notifications import notify_admin_new_proof, send_ticket_message, send_thank_you_message, send_rejected_message, send_message_to_user
 from app.services import approve_booking, reject_booking, generate_ticket_for_booking
+from app.analytics import dashboard_stats
 
 # تهيئة قاعدة البيانات
 init_db()
@@ -30,22 +31,20 @@ STATE_ADMIN_WAITING_BOOKING_CODE = "admin_waiting_booking_code"
 STATE_ADMIN_WAITING_MESSAGE = "admin_waiting_message"
 
 # =============== لوحات المفاتيح ===============
-def main_reply_keyboard():
-    """كيبورد عادي للمستخدمين"""
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    kb.add(types.KeyboardButton("ابدأ الحجز"), types.KeyboardButton("أنواع التذاكر"))
-    kb.add(types.KeyboardButton("طرق الدفع"), types.KeyboardButton("معلومات الحفل"))
+def user_keyboard():
+    """كيبورد للمستخدم العادي (بدون أزرار نهائياً)"""
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    # لا نضيف أي أزرار للمستخدم العادي
     return kb
 
 def admin_keyboard():
-    """كيبورد خاص بالأدمن (يظهر فقط للمسؤولين)"""
+    """كيبورد خاص للأدمن (4 أزرار فقط)"""
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.add(
-        types.KeyboardButton("ابدأ الحجز"),
-        types.KeyboardButton("أنواع التذاكر"),
-        types.KeyboardButton("طرق الدفع"),
-        types.KeyboardButton("معلومات الحفل"),
-        types.KeyboardButton("📨 إرسال رسالة")  # زر جديد للأدمن
+        types.KeyboardButton("📨 إرسال رسالة"),
+        types.KeyboardButton("👥 إجمالي الأفراد"),
+        types.KeyboardButton("🎖️ إجمالي البروشات"),
+        types.KeyboardButton("💰 إحصائيات الدفع")
     )
     return kb
 
@@ -124,6 +123,23 @@ def ticket_types_text():
         f"   • اكتب المبلغ اللي تحبه"
     )
 
+def get_payment_stats_text():
+    """الحصول على نص إحصائيات الدفع (مثل الداشبورد)"""
+    stats = dashboard_stats()
+    
+    text = (
+        f"💰 **إجمالي المدفوعات: {stats['revenue']} جنيه**\n\n"
+        f"💳 **InstaPay:**\n"
+        f"   • عدد العمليات: {stats['instapay']['count']}\n"
+        f"   • قيمة الحضور: {stats['instapay']['attendees_value']} جنيه\n"
+        f"   • قيمة المساهمات: {stats['instapay']['contributions_value']} جنيه\n\n"
+        f"📱 **محفظة إلكترونية:**\n"
+        f"   • عدد العمليات: {stats['wallet']['count']}\n"
+        f"   • قيمة الحضور: {stats['wallet']['attendees_value']} جنيه\n"
+        f"   • قيمة المساهمات: {stats['wallet']['contributions_value']} جنيه"
+    )
+    return text
+
 # =============== معالجات البوت ===============
 @bot.message_handler(commands=["start"])
 def start(message):
@@ -135,7 +151,7 @@ def start(message):
         if message.from_user.id in ADMIN_CHAT_IDS:
             bot.send_message(message.chat.id, event_info_text(), reply_markup=admin_keyboard())
         else:
-            bot.send_message(message.chat.id, event_info_text(), reply_markup=main_reply_keyboard())
+            bot.send_message(message.chat.id, event_info_text(), reply_markup=user_keyboard())
             
         bot.send_message(message.chat.id, "اختر نوع التذكرة:", reply_markup=ticket_inline_keyboard())
     except Exception as e:
@@ -153,7 +169,7 @@ def help_command(message):
             "/help - هذه المساعدة\n\n"
             "👑 **للمسؤولين:**\n"
             "/send - إرسال رسالة لمستخدم\n"
-            "/cancel - إلغاء العملية الحالية"
+            "الأزرار السفلية تحتوي على الإحصائيات"
         )
         bot.reply_to(message, help_text, parse_mode='Markdown')
     except Exception as e:
@@ -174,8 +190,7 @@ def admin_send_command(message):
         set_session(message.chat.id, STATE_ADMIN_WAITING_BOOKING_CODE, {})
         bot.reply_to(
             message, 
-            "📝 أرسل كود الحجز (مثال: EVT-XXXXX):\nأو أرسل /cancel للإلغاء",
-            reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton("/cancel"))
+            "📝 أرسل كود الحجز (مثال: EVT-XXXXX):"
         )
         
     except Exception as e:
@@ -183,55 +198,51 @@ def admin_send_command(message):
         traceback.print_exc()
         bot.reply_to(message, "❌ حدث خطأ، حاول مرة أخرى")
 
-@bot.message_handler(commands=["cancel"])
-def admin_cancel(message):
-    """إلغاء العملية الحالية"""
-    clear_session(message.chat.id)
-    
-    # إعادة الكيبورد المناسب
-    if message.from_user.id in ADMIN_CHAT_IDS:
-        bot.reply_to(message, "✅ تم إلغاء العملية", reply_markup=admin_keyboard())
-    else:
-        bot.reply_to(message, "✅ تم إلغاء العملية", reply_markup=main_reply_keyboard())
-
-@bot.message_handler(func=lambda m: m.text in ["ابدأ الحجز", "أنواع التذاكر", "طرق الدفع", "معلومات الحفل", "📨 إرسال رسالة"])
-def quick_actions(message):
+@bot.message_handler(func=lambda m: m.text in ["📨 إرسال رسالة", "👥 إجمالي الأفراد", "🎖️ إجمالي البروشات", "💰 إحصائيات الدفع"])
+def admin_buttons_handler(message):
+    """معالج أزرار الأدمن"""
     try:
-        if message.text == "ابدأ الحجز":
-            clear_session(message.chat.id)
-            set_session(message.chat.id, STATE_SELECT_TICKET, {})
-            bot.send_message(message.chat.id, "اختر نوع التذكرة:", reply_markup=ticket_inline_keyboard())
-            
-        elif message.text == "أنواع التذاكر":
-            bot.send_message(message.chat.id, ticket_types_text(), 
-                           reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
-            bot.send_message(message.chat.id, "اختر نوع التذكرة:", reply_markup=ticket_inline_keyboard())
-            
-        elif message.text == "طرق الدفع":
-            bot.send_message(message.chat.id, payment_info_text(), 
-                           reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
-            
-        elif message.text == "معلومات الحفل":
-            bot.send_message(message.chat.id, event_info_text(), 
-                           reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
-            
-        elif message.text == "📨 إرسال رسالة":
-            # التحقق أن المرسل هو أدمن
-            if message.from_user.id not in ADMIN_CHAT_IDS:
-                bot.reply_to(message, "⛔ هذا الأمر مخصص للمسؤولين فقط")
-                return
-            
+        # التحقق أن المرسل هو أدمن
+        if message.from_user.id not in ADMIN_CHAT_IDS:
+            bot.reply_to(message, "⛔ هذا الأمر مخصص للمسؤولين فقط")
+            return
+        
+        if message.text == "📨 إرسال رسالة":
             # بدء عملية إرسال الرسالة
             set_session(message.chat.id, STATE_ADMIN_WAITING_BOOKING_CODE, {})
-            bot.reply_to(
-                message, 
-                "📝 أرسل كود الحجز (مثال: EVT-XXXXX):\nأو أرسل /cancel للإلغاء",
-                reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton("/cancel"))
+            bot.reply_to(message, "📝 أرسل كود الحجز (مثال: EVT-XXXXX):")
+            
+        elif message.text == "👥 إجمالي الأفراد":
+            # عرض إجمالي الأفراد
+            guests_stats = get_total_guests_stats()
+            text = (
+                f"👥 **إحصائيات الأفراد:**\n\n"
+                f"• إجمالي الحضور الأساسي: {guests_stats['attendees']}\n"
+                f"• إجمالي الأفراد الإضافيين: {guests_stats['extra_people']}\n"
+                f"• **إجمالي الأفراد الكلي: {guests_stats['total_guests']}**"
             )
+            bot.reply_to(message, text, parse_mode='Markdown')
+            
+        elif message.text == "🎖️ إجمالي البروشات":
+            # عرض إحصائيات البروشات
+            pin_stats = get_pin_medal_stats()
+            text = (
+                f"🎖️ **إحصائيات البروشات:**\n\n"
+                f"• إجمالي البروشات المتاحة: {pin_stats['available']}\n"
+                f"• تم التسليم: {pin_stats['delivered']}\n"
+                f"• **المتبقي: {pin_stats['remaining']}**"
+            )
+            bot.reply_to(message, text, parse_mode='Markdown')
+            
+        elif message.text == "💰 إحصائيات الدفع":
+            # عرض إحصائيات الدفع
+            text = get_payment_stats_text()
+            bot.reply_to(message, text, parse_mode='Markdown')
             
     except Exception as e:
-        print(f"Error in quick_actions: {e}")
+        print(f"Error in admin_buttons_handler: {e}")
         traceback.print_exc()
+        bot.reply_to(message, "❌ حدث خطأ، حاول مرة أخرى")
 
 @bot.callback_query_handler(func=lambda c: c.data.startswith("ticket:"))
 def on_ticket(c):
@@ -242,7 +253,7 @@ def on_ticket(c):
             # مساهمة
             set_session(c.message.chat.id, STATE_ENTER_CONTRIBUTION_AMOUNT, {"ticket_type": ticket_type})
             bot.send_message(c.message.chat.id, "❤️ **مساهمة بدون حضور**\n\nاكتب قيمة المساهمة التي تريدها (مثلاً: 250 أو 750):", 
-                           reply_markup=admin_keyboard() if c.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                           reply_markup=admin_keyboard() if c.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
         else:
             # حضور
             set_session(c.message.chat.id, STATE_ENTER_EXTRA_PEOPLE, {
@@ -343,7 +354,7 @@ def on_pin_medal(c):
         summary += "الآن اكتب الاسم الكامل (رباعي):"
         
         bot.send_message(c.message.chat.id, summary, 
-                        reply_markup=admin_keyboard() if c.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                        reply_markup=admin_keyboard() if c.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
         bot.answer_callback_query(c.id)
     except Exception as e:
         print(f"Error in on_pin_medal: {e}")
@@ -424,7 +435,7 @@ def on_payment(c):
         )
         
         bot.send_message(c.message.chat.id, confirm_msg, 
-                        reply_markup=admin_keyboard() if c.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                        reply_markup=admin_keyboard() if c.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
         bot.answer_callback_query(c.id)
         
     except Exception as e:
@@ -438,12 +449,12 @@ def on_photo(message):
         session = get_session(message.chat.id)
         if not session or session["state"] != STATE_WAITING_PAYMENT_PROOF:
             bot.reply_to(message, "أرسل /start للبدء أولًا.", 
-                        reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                        reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
             return
         booking = get_booking_by_code(session["data"]["booking_code"])
         if not booking:
             bot.reply_to(message, "لم يتم العثور على الحجز.", 
-                        reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                        reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
             return
             
         photo = message.photo[-1]
@@ -462,7 +473,7 @@ def on_photo(message):
         notify_admin_new_proof(booking)
         
         bot.reply_to(message, "تم استلام إثبات الدفع ✅\nسيتم مراجعته قريبًا.", 
-                    reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                    reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
     except Exception as e:
         print(f"Error in on_photo: {e}")
         traceback.print_exc()
@@ -576,7 +587,7 @@ def on_text(message):
         session = get_session(message.chat.id)
         if not session:
             bot.reply_to(message, "استخدم /start للبدء.", 
-                        reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                        reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
             return
         state = session["state"]
         data = session["data"]
@@ -588,7 +599,7 @@ def on_text(message):
             # البحث عن الحجز
             booking = get_booking_by_code(booking_code)
             if not booking:
-                bot.reply_to(message, "❌ كود الحجز غير صحيح. أرسل كود صحيح أو /cancel للإلغاء")
+                bot.reply_to(message, "❌ كود الحجز غير صحيح. أرسل كود صحيح:")
                 return
             
             # حفظ بيانات الحجز في الجلسة
@@ -606,8 +617,7 @@ def on_text(message):
                 f"👤 **المستخدم:** {booking['name']}\n"
                 f"🔢 **الكود:** {booking['booking_code']}\n\n"
                 f"📝 الآن أرسل الرسالة التي تريد إرسالها للمستخدم:",
-                parse_mode='Markdown',
-                reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton("/cancel"))
+                parse_mode='Markdown'
             )
             return
             
@@ -615,7 +625,7 @@ def on_text(message):
             message_text = message.text.strip()
             
             if len(message_text) < 1:
-                bot.reply_to(message, "❌ الرسالة قصيرة جداً. أرسل رسالة أطول أو /cancel للإلغاء")
+                bot.reply_to(message, "❌ الرسالة قصيرة جداً. أرسل رسالة أطول:")
                 return
             
             booking_data = data.get("booking", {})
@@ -672,7 +682,7 @@ def on_text(message):
                 data["amount"] = amount
                 set_session(message.chat.id, STATE_ENTER_NAME, data)
                 bot.reply_to(message, f"❤️ تم اختيار مساهمة بقيمة **{amount} جنيه**\n\nالآن اكتب الاسم الكامل (رباعي):", 
-                            reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                            reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
                 return
                 
             except ValueError:
@@ -682,27 +692,27 @@ def on_text(message):
         elif state == STATE_ENTER_NAME:
             if not message.text or len(message.text.strip()) < 3:
                 bot.reply_to(message, "الاسم قصير جداً، اكتب الاسم الكامل (رباعي)", 
-                            reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                            reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
                 return
             data["name"] = message.text.strip()
             set_session(message.chat.id, STATE_ENTER_PHONE, data)
             bot.reply_to(message, "اكتب رقم الموبايل", 
-                        reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                        reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
             return
             
         elif state == STATE_ENTER_PHONE:
             phone = normalize_phone(message.text)
             if not is_valid_phone(phone):
                 bot.reply_to(message, "رقم الهاتف غير صحيح. اكتب رقمًا مصريًا صحيحًا يبدأ بـ 01", 
-                            reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+                            reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
                 return
             data["phone"] = phone
             set_session(message.chat.id, "select_payment_method", data)
             bot.send_message(message.chat.id, "اختر طريقة الدفع المناسبة", reply_markup=payment_method_keyboard())
             return
             
-        bot.reply_to(message, "استخدم الأزرار الموجودة بالأسفل أو أرسل /start", 
-                    reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else main_reply_keyboard())
+        bot.reply_to(message, "استخدم /start للبدء", 
+                    reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
     except Exception as e:
         print(f"Error in on_text: {e}")
         traceback.print_exc()
