@@ -130,6 +130,44 @@
     {% endif %}
   </div>
   
+  <!-- =============== قسم سجل الرسائل (جديد) =============== -->
+  <div style="margin-top: 40px; border-top: 2px solid #17a2b8; padding-top: 30px;">
+    <h3 style="color: #17a2b8; margin-bottom: 20px;">📨 سجل الرسائل المرسلة</h3>
+    
+    <!-- رسالة خطأ/تحذير -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <!-- نموذج إرسال رسالة جديدة -->
+    <div style="background: #f8f9ff; padding: 20px; border-radius: 15px; margin-bottom: 25px;">
+      <h4 style="color: #333; margin-bottom: 15px;">إرسال رسالة جديدة</h4>
+      <form method="post" action="{{ url_for('admin_send_message', booking_id=booking.id) }}" onsubmit="return confirm('هل أنت متأكد من إرسال هذه الرسالة؟')">
+        <div style="margin-bottom: 15px;">
+          <textarea name="message" rows="4" placeholder="اكتب رسالتك هنا..." style="width: 100%; padding: 15px; border: 2px solid #17a2b8; border-radius: 10px; font-size: 1rem;" required></textarea>
+        </div>
+        <div>
+          <button type="submit" style="background: #17a2b8; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem;">
+            📨 إرسال الرسالة
+          </button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- عرض الرسائل السابقة -->
+    <div id="messages-container">
+      <div style="text-align: center; padding: 20px;">
+        <span>جاري تحميل الرسائل...</span>
+      </div>
+    </div>
+  </div>
+  
   <!-- الإجراءات الإدارية -->
   <div style="margin-top: 40px; border-top: 2px dashed #dc3545; padding-top: 30px;">
     <h3 style="color: #dc3545; margin-bottom: 20px;">⚠️ الإجراءات الإدارية</h3>
@@ -145,7 +183,7 @@
       
       <!-- زر مسح الحجز نهائياً -->
       <form method="post" action="{{ url_for('admin_delete_booking', booking_id=booking.id) }}" style="display:inline;" 
-            onsubmit="return confirm('🚨 تحذير شديد: هل أنت متأكد من حذف هذا الحجز نهائياً؟\n\nهذا الإجراء لا يمكن التراجع عنه!\n• سيتم حذف جميع بيانات الحجز\n• سيتم حذف صور الإثبات\n• سيتم حذف سجلات الدخول\n\nهل أنت متأكد 100%؟')">
+            onsubmit="return confirm('🚨 تحذير شديد: هل أنت متأكد من حذف هذا الحجز نهائياً؟\n\nهذا الإجراء لا يمكن التراجع عنه!\n• سيتم حذف جميع بيانات الحجز\n• سيتم حذف صور الإثبات\n• سيتم حذف سجلات الدخول\n• سيتم حذف سجل الرسائل\n\nهل أنت متأكد 100%؟')">
         <button type="submit" class="btn btn-delete">🗑️ حذف الحجز نهائياً</button>
       </form>
     </div>
@@ -155,6 +193,47 @@
     </p>
   </div>
 </div>
+
+<script>
+// تحميل سجل الرسائل
+function loadMessages() {
+  fetch('/admin/bookings/{{ booking.id }}/messages')
+    .then(response => response.json())
+    .then(data => {
+      const container = document.getElementById('messages-container');
+      
+      if (data.messages && data.messages.length > 0) {
+        let html = '<div style="background: #f8f9ff; border-radius: 10px; padding: 15px;">';
+        data.messages.forEach(msg => {
+          html += `
+            <div style="border-bottom: 1px solid #ddd; padding: 15px; margin-bottom: 10px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="color: #17a2b8; font-weight: bold;">📨 رسالة</span>
+                <span style="color: #666; font-size: 0.9rem;">${msg.sent_at}</span>
+              </div>
+              <div style="background: white; padding: 10px; border-radius: 5px; white-space: pre-wrap;">
+                ${msg.message}
+              </div>
+              <div style="margin-top: 5px; font-size: 0.8rem; color: #28a745;">
+                ✅ تم الإرسال
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+      } else {
+        container.innerHTML = '<div style="text-align: center; padding: 30px; background: #f8f9ff; border-radius: 10px; color: #666;">لا توجد رسائل سابقة</div>';
+      }
+    })
+    .catch(error => {
+      document.getElementById('messages-container').innerHTML = '<div style="text-align: center; padding: 30px; background: #f8d7da; border-radius: 10px; color: #721c24;">حدث خطأ في تحميل الرسائل</div>';
+    });
+}
+
+// تحميل الرسائل عند فتح الصفحة
+document.addEventListener('DOMContentLoaded', loadMessages);
+</script>
 
 <style>
   .nav {
