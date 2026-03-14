@@ -52,7 +52,7 @@ def close_connection():
         print("✅ Database connection closed")
 
 def init_db():
-    """إنشاء قاعدة البيانات مع التأكد من وجود جميع الأعمدة"""
+    """إنشاء قاعدة البيانات مع التأكد من وجود جميع الأعمدة والجداول"""
     with connect() as conn:
         # إنشاء جدول bookings إذا لم يكن موجوداً
         conn.execute('''
@@ -105,7 +105,7 @@ def init_db():
             )
         ''')
         
-        # إضافة عداد البروشات المتاحة (200)
+        # إضافة عداد البروشات المتاحة (200) - التأكد من وجوده
         cursor = conn.execute("SELECT COUNT(*) as count FROM settings WHERE key='total_pin_medal_available'")
         if cursor.fetchone()['count'] == 0:
             conn.execute(
@@ -113,15 +113,36 @@ def init_db():
                 ('total_pin_medal_available', '200', now_str())
             )
             print("✅ Initialized pin medal counter with 200")
+        else:
+            # التأكد من القيمة (لو حد غيرها)
+            current = conn.execute("SELECT value FROM settings WHERE key='total_pin_medal_available'").fetchone()
+            if current and int(current['value']) != 200:
+                print(f"⚠️ Pin medal available count is {current['value']}, expected 200")
         
-        # عداد البروشات المسلمة
+        # عداد البروشات المسلمة - التأكد من وجوده
         cursor = conn.execute("SELECT COUNT(*) as count FROM settings WHERE key='total_pin_medal_delivered'")
         if cursor.fetchone()['count'] == 0:
+            # حساب العدد الفعلي من قاعدة البيانات
+            actual_delivered = conn.execute("SELECT COUNT(*) as c FROM bookings WHERE pin_medal=1 AND status='used'").fetchone()["c"]
             conn.execute(
                 "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
-                ('total_pin_medal_delivered', '0', now_str())
+                ('total_pin_medal_delivered', str(actual_delivered), now_str())
             )
-            print("✅ Initialized delivered pin medal counter with 0")
+            print(f"✅ Initialized delivered pin medal counter with {actual_delivered}")
+        else:
+            # تحديث العداد بالقيمة الحالية (11) ثم يكمل من بعدها
+            current_delivered = conn.execute("SELECT value FROM settings WHERE key='total_pin_medal_delivered'").fetchone()
+            if current_delivered:
+                current_value = int(current_delivered['value'])
+                # إذا كانت القيمة الحالية أقل من 11، نحدثها لـ 11
+                if current_value < 11:
+                    conn.execute(
+                        "UPDATE settings SET value=?, updated_at=? WHERE key='total_pin_medal_delivered'",
+                        ('11', now_str())
+                    )
+                    print(f"✅ Updated pin medal delivered counter to 11 (was {current_value})")
+                else:
+                    print(f"✅ Pin medal delivered counter is {current_value}")
         
         # إنشاء جدول checkins
         conn.execute('''
@@ -172,7 +193,7 @@ def init_db():
             )
         ''')
         
-        # =============== جدول سجل الرسائل (جديد) ===============
+        # إنشاء جدول سجل الرسائل
         conn.execute('''
             CREATE TABLE IF NOT EXISTS message_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
