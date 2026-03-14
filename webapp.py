@@ -1,22 +1,22 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 import os
-import atexit  # تمت الإضافة
+import atexit
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.config import SECRET_KEY, ADMIN_PASSWORD, EVENT_NAME, EVENT_LOCATION, EVENT_MAP, EVENT_TIME, UPLOADS_DIR, BASE_URL
-from app.db import init_db, connect, close_connection  # تمت إضافة close_connection
+from app.db import init_db, connect, close_connection
 from app.utils import ticket_label, payment_label, basename
 from app.analytics import dashboard_stats
 from app.reports import bookings_csv_response, checkins_csv_response
 from app.services import list_bookings, get_booking_by_id, approve_booking, reject_booking, generate_ticket_for_booking, validate_for_checkin, checkin, get_booking_by_qr_token, get_pin_medal_stats
-from app.notifications import send_ticket_message, send_thank_you_message, send_rejected_message, send_broadcast
+from app.notifications import send_ticket_message, send_thank_you_message, send_rejected_message, send_broadcast, send_message_to_user
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.secret_key = SECRET_KEY
 init_db()
 
-# إغلاق اتصال قاعدة البيانات عند إيقاف التطبيق - تمت الإضافة
+# إغلاق اتصال قاعدة البيانات عند إيقاف التطبيق
 atexit.register(close_connection)
 
 @app.context_processor
@@ -217,6 +217,7 @@ def admin_delete_booking(booking_id):
             # حذف السجلات المرتبطة
             conn.execute("DELETE FROM checkins WHERE booking_id = ?", (booking_id,))
             conn.execute("DELETE FROM admin_actions WHERE booking_id = ?", (booking_id,))
+            conn.execute("DELETE FROM message_log WHERE booking_id = ?", (booking_id,))  # حذف سجل الرسائل
             
             # حذف الحجز
             conn.execute("DELETE FROM bookings WHERE id = ?", (booking_id,))
@@ -239,6 +240,75 @@ def admin_delete_booking(booking_id):
         flash(f"❌ حدث خطأ في حذف الحجز: {str(e)}")
     
     return redirect(url_for("admin_bookings"))
+
+# =============== رسائل للمستخدم (جديد) ===============
+@app.route("/admin/bookings/<int:booking_id>/send-message", methods=["POST"])
+def admin_send_message(booking_id):
+    """إرسال رسالة للمستخدم وتسجيلها"""
+    if not is_admin():
+        return redirect(url_for("admin_login"))
+    
+    try:
+        message = request.form.get("message", "").strip()
+        if not message:
+            flash("⚠️ الرجاء كتابة الرسالة")
+            return redirect(url_for("admin_booking_details", booking_id=booking_id))
+        
+        booking = get_booking_by_id(booking_id)
+        if not booking:
+            flash("❌ الحجز غير موجود")
+            return redirect(url_for("admin_bookings"))
+        
+        if not booking['telegram_chat_id']:
+            flash("⚠️ لا يوجد معرف محادثة للمستخدم")
+            return redirect(url_for("admin_booking_details", booking_id=booking_id))
+        
+        success = send_message_to_user(booking['telegram_chat_id'], message)
+        
+        if success:
+            # تسجيل الرسالة في قاعدة البيانات
+            with connect() as conn:
+                conn.execute(
+                    "INSERT INTO message_log (booking_id, booking_code, admin_name, message, sent_at, status) VALUES (?, ?, ?, ?, datetime('now'), ?)",
+                    (booking_id, booking['booking_code'], session.get('admin_name', 'admin'), message, "sent")
+                )
+            flash("✅ تم إرسال الرسالة بنجاح")
+        else:
+            flash("❌ فشل إرسال الرسالة")
+        
+    except Exception as e:
+        print(f"Error sending message: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"❌ حدث خطأ: {str(e)}")
+    
+    return redirect(url_for("admin_booking_details", booking_id=booking_id))
+
+@app.route("/admin/bookings/<int:booking_id>/messages")
+def admin_booking_messages(booking_id):
+    """عرض سجل رسائل الحجز (API)"""
+    if not is_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        with connect() as conn:
+            messages = conn.execute(
+                "SELECT * FROM message_log WHERE booking_id = ? ORDER BY sent_at DESC",
+                (booking_id,)
+            ).fetchall()
+        
+        messages_list = []
+        for msg in messages:
+            messages_list.append({
+                "id": msg["id"],
+                "message": msg["message"],
+                "sent_at": msg["sent_at"],
+                "status": msg["status"]
+            })
+        
+        return jsonify({"messages": messages_list})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/admin/reports/bookings.csv")
 def export_bookings():
@@ -387,7 +457,7 @@ def api_recent_scans():
         print(f"Error in recent scans: {e}")
         return jsonify({"error": str(e)}), 500
 
-# =============== API Routes للإحصائيات الجديدة ===============
+# =============== API Routes للإحصائيات ===============
 @app.route("/api/guest-stats", methods=["GET"])
 def api_guest_stats():
     """إحصائيات الضيوف للسكانر"""
