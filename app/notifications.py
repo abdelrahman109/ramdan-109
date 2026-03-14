@@ -180,14 +180,17 @@ def send_broadcast(chat_ids, message):
             pass
     return count
 
-# =============== دالة إرسال رسالة للمستخدم ===============
+# =============== دالة إرسال رسالة للمستخدم (معدلة لدعم العربية) ===============
 def send_message_to_user(chat_id, message):
-    """إرسال رسالة مباشرة لمستخدم"""
+    """إرسال رسالة مباشرة لمستخدم (مع دعم العربية)"""
     if not _bot:
         return False
     
     try:
-        _bot.send_message(chat_id, message, parse_mode='Markdown')
+        # إضافة حرف تحكم RTL في بداية الرسالة
+        rtl_message = "\u202B" + message
+        
+        _bot.send_message(chat_id, rtl_message, parse_mode='Markdown')
         print(f"✅ Message sent to user {chat_id}")
         return True
     except Exception as e:
