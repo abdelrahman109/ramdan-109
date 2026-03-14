@@ -710,4 +710,19 @@ def on_text(message):
 
 # =============== إغلاق اتصال قاعدة البيانات ===============
 import atexit
-from app.db
+from app.db import close_connection
+
+atexit.register(close_connection)
+
+# =============== تشغيل البوت ===============
+if __name__ == "__main__":
+    print("✅ Bot is running...")
+    while True:
+        try:
+            bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            print(f"❌ Bot crashed: {e}")
+            traceback.print_exc()
+            print("🔄 Restarting bot in 5 seconds...")
+            import time
+            time.sleep(5)
