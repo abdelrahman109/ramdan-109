@@ -1,27 +1,55 @@
 import sqlite3
+import time
 from contextlib import contextmanager
 from app.config import DB_PATH
 from app.utils import ensure_dirs, now_str
 
 ensure_dirs("instance")
 
+# متغير عام لتخزين الاتصال الوحيد (Singleton pattern)
+_connection = None
+
 def get_connection():
-    """الحصول على اتصال بقاعدة البيانات مع timeout 10 ثواني و WAL mode"""
-    conn = sqlite3.connect(DB_PATH, timeout=10)
-    conn.row_factory = sqlite3.Row
-    # تفعيل WAL mode لتحسين التزامن
-    conn.execute("PRAGMA journal_mode=WAL")
-    return conn
+    """الحصول على اتصال واحد فقط بقاعدة البيانات (Singleton)"""
+    global _connection
+    if _connection is None:
+        _connection = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
+        _connection.row_factory = sqlite3.Row
+        # تفعيل WAL mode لتحسين التزامن
+        _connection.execute("PRAGMA journal_mode=WAL")
+        # زيادة حجم cache
+        _connection.execute("PRAGMA cache_size=10000")
+        # تفعيل foreign keys
+        _connection.execute("PRAGMA foreign_keys=ON")
+        print("✅ Database connection established (WAL mode enabled)")
+    return _connection
 
 @contextmanager
 def connect():
-    """إدارة اتصال قاعدة البيانات"""
+    """إدارة اتصال قاعدة البيانات - يستخدم نفس الاتصال لكل الطلبات"""
     conn = get_connection()
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
+    retries = 3
+    for attempt in range(retries):
+        try:
+            yield conn
+            conn.commit()
+            break
+        except sqlite3.OperationalError as e:
+            if "database is locked" in str(e) and attempt < retries - 1:
+                print(f"⚠️ Database locked, retrying... ({attempt + 1}/{retries})")
+                time.sleep(0.5)
+                continue
+            else:
+                conn.rollback()
+                raise e
+
+def close_connection():
+    """إغلاق اتصال قاعدة البيانات (يستخدم عند إيقاف التطبيق)"""
+    global _connection
+    if _connection:
+        _connection.close()
+        _connection = None
+        print("✅ Database connection closed")
 
 def init_db():
     """إنشاء قاعدة البيانات مع التأكد من وجود جميع الأعمدة"""
