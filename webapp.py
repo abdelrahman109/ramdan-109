@@ -1,14 +1,17 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 import os
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 from app.config import SECRET_KEY, ADMIN_PASSWORD, EVENT_NAME, EVENT_LOCATION, EVENT_MAP, EVENT_TIME, UPLOADS_DIR, BASE_URL
 from app.db import init_db, connect
 from app.utils import ticket_label, payment_label, basename
 from app.analytics import dashboard_stats
 from app.reports import bookings_csv_response, checkins_csv_response
-from app.services import list_bookings, get_booking_by_id, approve_booking, reject_booking, generate_ticket_for_booking, validate_for_checkin, checkin, get_booking_by_qr_token
+from app.services import list_bookings, get_booking_by_id, approve_booking, reject_booking, generate_ticket_for_booking, validate_for_checkin, checkin, get_booking_by_qr_token, get_pin_medal_stats
 from app.notifications import send_ticket_message, send_thank_you_message, send_rejected_message, send_broadcast
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.secret_key = SECRET_KEY
 init_db()
 
@@ -24,7 +27,8 @@ def inject_globals():
         "payment_label": payment_label, 
         "remaining_tickets": stats["remaining"], 
         "basename": basename,
-        "BASE_URL": BASE_URL
+        "BASE_URL": BASE_URL,
+        "stats": stats
     }
 
 def is_admin():
@@ -320,7 +324,8 @@ def api_checkin():
             "message": result["message"], 
             "name": booking["name"] if booking else None, 
             "ticket_type": ticket_label(booking["ticket_type"]) if booking else None, 
-            "booking_code": booking["booking_code"] if booking else None
+            "booking_code": booking["booking_code"] if booking else None,
+            "has_pin_medal": booking["pin_medal"] if booking and 'pin_medal' in booking.keys() else False
         })
     except Exception as e:
         print(f"Error in checkin: {e}")
@@ -329,7 +334,6 @@ def api_checkin():
 # =============== Scanner API Routes ===============
 @app.route("/api/stats", methods=["GET"])
 def api_stats():
-    """إحصائيات سريعة للماسح"""
     try:
         with connect() as conn:
             total = conn.execute(
@@ -350,14 +354,14 @@ def api_stats():
 
 @app.route("/api/recent-scans", methods=["GET"])
 def api_recent_scans():
-    """آخر عمليات المسح"""
     try:
         with connect() as conn:
             scans = conn.execute("""
                 SELECT c.checked_in_at as time, 
                        b.name,
                        b.ticket_type,
-                       c.result
+                       c.result,
+                       b.pin_medal
                 FROM checkins c
                 JOIN bookings b ON c.booking_id = b.id
                 ORDER BY c.id DESC
@@ -367,15 +371,49 @@ def api_recent_scans():
         scans_list = []
         for scan in scans:
             scans_list.append({
-                "time": scan["time"][5:16] if scan["time"] else "",  # MM-DD HH:MM
+                "time": scan["time"][5:16] if scan["time"] else "",
                 "name": scan["name"],
                 "ticket_type": ticket_label(scan["ticket_type"]),
-                "result": scan["result"]
+                "result": scan["result"],
+                "has_pin_medal": scan["pin_medal"] == 1
             })
             
         return jsonify({"scans": scans_list})
     except Exception as e:
         print(f"Error in recent scans: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# =============== API Routes للإحصائيات الجديدة ===============
+@app.route("/api/guest-stats", methods=["GET"])
+def api_guest_stats():
+    """إحصائيات الضيوف للسكانر"""
+    try:
+        with connect() as conn:
+            attendees = conn.execute(
+                "SELECT COUNT(*) c FROM bookings WHERE is_attending=1 AND status IN ('paid','used')"
+            ).fetchone()["c"]
+            
+            extra_people = conn.execute(
+                "SELECT COALESCE(SUM(extra_people),0) s FROM bookings WHERE is_attending=1 AND status IN ('paid','used')"
+            ).fetchone()["s"]
+            
+            total_guests = attendees + extra_people
+            
+        return jsonify({
+            "total_guests": total_guests
+        })
+    except Exception as e:
+        print(f"Error in guest stats: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/pin-stats", methods=["GET"])
+def api_pin_stats():
+    """إحصائيات البروش للسكانر"""
+    try:
+        stats = get_pin_medal_stats()
+        return jsonify(stats)
+    except Exception as e:
+        print(f"Error in pin stats: {e}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
