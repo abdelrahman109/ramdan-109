@@ -89,10 +89,10 @@ def dashboard_stats():
         else:
             total_pin_medal = 0
         
-        # إحصائيات البروشات المسلمة من services
+        # إحصائيات البروش من services
         pin_stats = get_pin_medal_stats()
         
-        # إحصائيات تفصيلية للضيوف - تصحيح
+        # إحصائيات تفصيلية للضيوف
         attendees_with_extra = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE is_attending=1 AND extra_people>0 AND status IN ('paid','used')"
         ).fetchone()["c"] if 'extra_people' in columns else 0
@@ -105,11 +105,13 @@ def dashboard_stats():
         # السعة المتبقية
         remaining_capacity = max(EVENT_CAPACITY - total_guests, 0)
         
-        # إحصائيات البروش من settings
+        # إحصائيات البروش من settings - محدث
         pin_medal_stats = {
             'available': pin_stats['available'],
+            'purchased': pin_stats['purchased'],
             'delivered': pin_stats['delivered'],
-            'remaining': pin_stats['remaining']
+            'remaining_for_purchase': pin_stats['remaining_for_purchase'],
+            'remaining_for_delivery': pin_stats['remaining_for_delivery']
         }
 
     return {
@@ -153,7 +155,7 @@ def dashboard_stats():
             "without_extra": attendees_without_extra
         },
         
-        # إحصائيات البروش
+        # إحصائيات البروش - محدث
         "pin_medal_stats": pin_medal_stats,
         "pin_medal": {
             "count": total_pin_medal
