@@ -5,11 +5,11 @@ from telebot import types
 
 from app.config import TELEGRAM_BOT_TOKEN, EVENT_NAME, EVENT_TIME, EVENT_PRE_ARRIVAL_TEXT, EVENT_LOCATION, EVENT_MAP, ACCOUNT_NAME_AR, ACCOUNT_NAME_EN, INSTAPAY_PHONE, WALLET_PHONE, INSTAPAY_LINK, ADMIN_CHAT_IDS
 from app.constants import TICKET_FULL, TICKET_CONTRIBUTION, PRICE_BASE_ATTENDANCE, PRICE_EXTRA_MEAL, PRICE_PIN_MEDAL, PAY_INSTAPAY, PAY_WALLET
-from app.db import init_db
+from app.db import init_db, connect
 from app.utils import normalize_phone, is_valid_phone
 from app.services import set_session, get_session, clear_session, create_booking, update_payment_proof, get_booking_by_code, get_booking_by_id, get_pin_medal_stats, check_pin_medal_available
 from app.storage import payment_proof_path
-from app.notifications import notify_admin_new_proof, send_ticket_message, send_thank_you_message, send_rejected_message
+from app.notifications import notify_admin_new_proof, send_ticket_message, send_thank_you_message, send_rejected_message, send_message_to_user
 from app.services import approve_booking, reject_booking, generate_ticket_for_booking
 
 # تهيئة قاعدة البيانات
@@ -26,6 +26,8 @@ STATE_ASK_PIN_MEDAL = "ask_pin_medal"
 STATE_ENTER_NAME = "enter_name"
 STATE_ENTER_PHONE = "enter_phone"
 STATE_WAITING_PAYMENT_PROOF = "waiting_payment_proof"
+STATE_ADMIN_WAITING_BOOKING_CODE = "admin_waiting_booking_code"  # حالة جديدة
+STATE_ADMIN_WAITING_MESSAGE = "admin_waiting_message"  # حالة جديدة
 
 # =============== لوحات المفاتيح ===============
 def main_reply_keyboard():
@@ -120,6 +122,53 @@ def start(message):
     except Exception as e:
         print(f"Error in start: {e}")
         traceback.print_exc()
+
+@bot.message_handler(commands=["help"])
+def help_command(message):
+    """أمر المساعدة"""
+    try:
+        help_text = (
+            "🔰 **أوامر البوت:**\n\n"
+            "👤 **للمستخدمين:**\n"
+            "/start - بدء الحجز\n"
+            "/help - هذه المساعدة\n\n"
+            "👑 **للمسؤولين:**\n"
+            "/send - إرسال رسالة لمستخدم\n"
+            "/cancel - إلغاء العملية الحالية"
+        )
+        bot.reply_to(message, help_text, parse_mode='Markdown')
+    except Exception as e:
+        print(f"Error in help: {e}")
+        traceback.print_exc()
+
+# =============== أوامر الأدمن ===============
+@bot.message_handler(commands=["send"])
+def admin_send_command(message):
+    """أمر إرسال رسالة لمستخدم (للأدمن فقط)"""
+    try:
+        # التحقق أن المرسل هو أدمن
+        if message.from_user.id not in ADMIN_CHAT_IDS:
+            bot.reply_to(message, "⛔ هذا الأمر مخصص للمسؤولين فقط")
+            return
+        
+        # طلب إدخال كود الحجز
+        set_session(message.chat.id, STATE_ADMIN_WAITING_BOOKING_CODE, {})
+        bot.reply_to(
+            message, 
+            "📝 أرسل كود الحجز (مثال: EVT-XXXXX):\nأو أرسل /cancel للإلغاء",
+            reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton("/cancel"))
+        )
+        
+    except Exception as e:
+        print(f"Error in admin_send_command: {e}")
+        traceback.print_exc()
+        bot.reply_to(message, "❌ حدث خطأ، حاول مرة أخرى")
+
+@bot.message_handler(commands=["cancel"])
+def admin_cancel(message):
+    """إلغاء العملية الحالية"""
+    clear_session(message.chat.id)
+    bot.reply_to(message, "✅ تم إلغاء العملية", reply_markup=main_reply_keyboard())
 
 @bot.message_handler(func=lambda m: m.text in ["ابدأ الحجز", "أنواع التذاكر", "طرق الدفع", "معلومات الحفل"])
 def quick_actions(message):
@@ -480,6 +529,82 @@ def on_text(message):
         state = session["state"]
         data = session["data"]
         
+        # =============== حالات الأدمن ===============
+        if state == STATE_ADMIN_WAITING_BOOKING_CODE:
+            booking_code = message.text.strip().upper()
+            
+            # البحث عن الحجز
+            booking = get_booking_by_code(booking_code)
+            if not booking:
+                bot.reply_to(message, "❌ كود الحجز غير صحيح. أرسل كود صحيح أو /cancel للإلغاء")
+                return
+            
+            # حفظ بيانات الحجز في الجلسة
+            data["booking"] = {
+                "id": booking["id"],
+                "code": booking["booking_code"],
+                "name": booking["name"],
+                "chat_id": booking["telegram_chat_id"]
+            }
+            set_session(message.chat.id, STATE_ADMIN_WAITING_MESSAGE, data)
+            
+            bot.reply_to(
+                message,
+                f"✅ **تم العثور على الحجز**\n\n"
+                f"👤 **المستخدم:** {booking['name']}\n"
+                f"🔢 **الكود:** {booking['booking_code']}\n\n"
+                f"📝 الآن أرسل الرسالة التي تريد إرسالها للمستخدم:",
+                parse_mode='Markdown',
+                reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton("/cancel"))
+            )
+            return
+            
+        if state == STATE_ADMIN_WAITING_MESSAGE:
+            message_text = message.text.strip()
+            
+            if len(message_text) < 1:
+                bot.reply_to(message, "❌ الرسالة قصيرة جداً. أرسل رسالة أطول أو /cancel للإلغاء")
+                return
+            
+            booking_data = data.get("booking", {})
+            booking_id = booking_data.get("id")
+            user_chat_id = booking_data.get("chat_id")
+            user_name = booking_data.get("name")
+            
+            if not booking_id or not user_chat_id:
+                bot.reply_to(message, "❌ خطأ في بيانات الحجز. استخدم /send مرة أخرى")
+                clear_session(message.chat.id)
+                return
+            
+            # إرسال الرسالة للمستخدم
+            success = send_message_to_user(user_chat_id, message_text)
+            
+            if success:
+                # تسجيل الإجراء في قاعدة البيانات
+                with connect() as conn:
+                    conn.execute(
+                        "INSERT INTO message_log (booking_id, booking_code, admin_name, message, sent_at, status) VALUES (?, ?, ?, ?, datetime('now'), ?)",
+                        (booking_id, booking_data.get("code"), "admin", message_text, "sent")
+                    )
+                
+                bot.reply_to(
+                    message,
+                    f"✅ **تم إرسال الرسالة بنجاح** إلى {user_name}",
+                    parse_mode='Markdown',
+                    reply_markup=main_reply_keyboard()
+                )
+            else:
+                bot.reply_to(
+                    message,
+                    "❌ **فشل إرسال الرسالة**\nتأكد من أن المستخدم بدأ المحادثة مع البوت",
+                    parse_mode='Markdown',
+                    reply_markup=main_reply_keyboard()
+                )
+            
+            clear_session(message.chat.id)
+            return
+        
+        # =============== باقي الحالات ===============
         if state == STATE_ENTER_CONTRIBUTION_AMOUNT:
             try:
                 amount_text = message.text.strip().replace(',', '').replace(' ', '')
