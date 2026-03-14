@@ -1,12 +1,14 @@
 import json
 import qrcode
+import time
+import sqlite3
 from app.db import connect
 from app.constants import TICKETS, STATUS_PENDING_PROOF, STATUS_PAID, STATUS_REJECTED
 from app.utils import generate_booking_code, generate_token, now_str
 from app.storage import qr_path, ticket_path
 from app.tickets import create_ticket_image
 
-# =============== دوال البروشات الجديدة ===============
+# =============== دوال البروشات ===============
 def get_pin_medal_stats():
     """الحصول على إحصائيات البروشات"""
     with connect() as conn:
@@ -192,6 +194,7 @@ def validate_for_checkin(qr_token):
     return {"status": "valid", "message": "دخول مسموح", "booking": booking}
 
 def checkin(qr_token, gate_name, checked_in_by):
+    """تسجيل دخول مع إعادة المحاولة إذا كانت قاعدة البيانات مقفولة"""
     result = validate_for_checkin(qr_token)
     booking = result["booking"]
     ts = now_str()
@@ -199,30 +202,41 @@ def checkin(qr_token, gate_name, checked_in_by):
     if not booking:
         return result
     
-    with connect() as conn:
-        if result["status"] == "valid":
-            conn.execute(
-                "UPDATE bookings SET status='used', used_at=?, gate_name=?, checked_in_by=?, updated_at=? WHERE id=?",
-                (ts, gate_name, checked_in_by, ts, booking["id"])
-            )
-            
-            # لو التذكرة فيها بروش، زود العداد
-            if booking['pin_medal'] and booking['pin_medal'] == 1:
-                increment_pin_medal_delivered()
-                print(f"✅ Pin medal delivered count increased for booking {booking['booking_code']}")
-            
-            conn.execute(
-                "INSERT INTO checkins (booking_id, booking_code, checked_in_at, gate_name, checked_in_by, result) VALUES (?, ?, ?, ?, ?, ?)",
-                (booking["id"], booking["booking_code"], ts, gate_name, checked_in_by, "success")
-            )
-            booking = conn.execute("SELECT * FROM bookings WHERE id=?", (booking["id"],)).fetchone()
-            return {"status": "success", "message": "دخول مسموح", "booking": booking}
-        
-        conn.execute(
-            "INSERT INTO checkins (booking_id, booking_code, checked_in_at, gate_name, checked_in_by, result) VALUES (?, ?, ?, ?, ?, ?)",
-            (booking["id"], booking["booking_code"], ts, gate_name, checked_in_by, result["status"])
-        )
-    
+    # محاولة التنفيذ مع إعادة المحاولة إذا كانت قاعدة البيانات مقفولة
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with connect() as conn:
+                if result["status"] == "valid":
+                    conn.execute(
+                        "UPDATE bookings SET status='used', used_at=?, gate_name=?, checked_in_by=?, updated_at=? WHERE id=?",
+                        (ts, gate_name, checked_in_by, ts, booking["id"])
+                    )
+                    
+                    # لو التذكرة فيها بروش، زود العداد
+                    if booking['pin_medal'] and booking['pin_medal'] == 1:
+                        increment_pin_medal_delivered()
+                        print(f"✅ Pin medal delivered count increased for booking {booking['booking_code']}")
+                    
+                    conn.execute(
+                        "INSERT INTO checkins (booking_id, booking_code, checked_in_at, gate_name, checked_in_by, result) VALUES (?, ?, ?, ?, ?, ?)",
+                        (booking["id"], booking["booking_code"], ts, gate_name, checked_in_by, "success")
+                    )
+                    booking = conn.execute("SELECT * FROM bookings WHERE id=?", (booking["id"],)).fetchone()
+                    return {"status": "success", "message": "دخول مسموح", "booking": booking}
+                
+                conn.execute(
+                    "INSERT INTO checkins (booking_id, booking_code, checked_in_at, gate_name, checked_in_by, result) VALUES (?, ?, ?, ?, ?, ?)",
+                    (booking["id"], booking["booking_code"], ts, gate_name, checked_in_by, result["status"])
+                )
+                return result
+        except sqlite3.OperationalError as e:
+            if "database is locked" in str(e) and attempt < max_retries - 1:
+                print(f"⚠️ Database locked, retrying... ({attempt + 1}/{max_retries})")
+                time.sleep(0.5)  # انتظار نصف ثانية قبل إعادة المحاولة
+                continue
+            else:
+                raise e
     return result
 
 def set_session(chat_id, state, data):
