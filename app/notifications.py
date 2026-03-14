@@ -1,316 +1,191 @@
-{% extends "base.html" %}
-{% block body %}
-<div class="nav">
-  <a href="{{ url_for('admin_bookings') }}" class="nav-link">⬅️ رجوع للحجوزات</a>
-  <a href="{{ url_for('admin_dashboard') }}" class="nav-link">🏠 الرئيسية</a>
-</div>
+import os
+import telebot
+import traceback
+from app.config import TELEGRAM_BOT_TOKEN, ADMIN_CHAT_IDS, EVENT_NAME, EVENT_TIME, EVENT_LOCATION, EVENT_MAP, EVENT_PRE_ARRIVAL_TEXT, BASE_URL
+from app.utils import ticket_label
+from app.constants import PRICE_EXTRA_MEAL, PRICE_PIN_MEDAL
 
-<div class="card">
-  <h2>تفاصيل الحجز - {{ booking.booking_code }}</h2>
-  
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
-    <!-- العمود الأول -->
-    <div style="background: #f8f9ff; padding: 20px; border-radius: 15px;">
-      <h3 style="color: #764ba2; margin-bottom: 20px;">📋 معلومات أساسية</h3>
-      <p><strong>🔢 الكود:</strong> <span style="font-family: monospace; font-size: 1.2rem;">{{ booking.booking_code }}</span></p>
-      <p><strong>👤 الاسم:</strong> {{ booking.name }}</p>
-      <p><strong>📞 الهاتف:</strong> {{ booking.phone }}</p>
-      <p><strong>📅 تاريخ الإنشاء:</strong> {{ booking.created_at }}</p>
-    </div>
-    
-    <!-- العمود الثاني -->
-    <div style="background: #f8f9ff; padding: 20px; border-radius: 15px;">
-      <h3 style="color: #764ba2; margin-bottom: 20px;">🎫 معلومات التذكرة</h3>
-      <p><strong>🎫 نوع التذكرة:</strong> {{ ticket_label(booking.ticket_type) }}</p>
-      
-      {% if booking.ticket_type == 'full_package' %}
-        <!-- تفاصيل الحضور -->
-        <p><strong>💰 مساهمة وجبة أسر الشهداء:</strong> 150 جنيه</p>
-        <p><strong>👥 أفراد إضافيين:</strong> 
-          {% if booking.extra_people and booking.extra_people > 0 %}
-            {{ booking.extra_people }} فرد
-          {% else %}
-            لا يوجد
-          {% endif %}
-        </p>
-        <p><strong>🎖️ بروش + ميدالية:</strong> 
-          {% if booking.pin_medal and booking.pin_medal == 1 %}
-            <span style="color: #28a745; font-weight: bold;">✅ نعم</span>
-          {% else %}
-            <span style="color: #6c757d;">❌ لا</span>
-          {% endif %}
-        </p>
-        <p><strong>💰 المبلغ الإجمالي:</strong> <span style="color: #28a745; font-weight: bold; font-size: 1.2rem;">{{ booking.amount }} جنيه</span></p>
-      {% endif %}
-      
-      <p><strong>💳 طريقة الدفع:</strong> 
-        {% if booking.payment_method == 'instapay' %}
-          <span style="color: #0057e7; font-weight: bold;">InstaPay</span>
-        {% else %}
-          <span style="color: #ff4b2b; font-weight: bold;">محفظة إلكترونية</span>
-        {% endif %}
-      </p>
-      <p><strong>👤 حضور:</strong> 
-        {% if booking.is_attending %}
-          <span style="color: #28a745; font-weight: bold;">✅ نعم (حضور)</span>
-        {% else %}
-          <span style="color: #ff9800; font-weight: bold;">❤️ لا (مساهمة)</span>
-        {% endif %}
-      </p>
-    </div>
-  </div>
-  
-  <!-- حالة الحجز -->
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px; margin-bottom: 30px; color: white;">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <h3 style="color: white; margin: 0;">📊 حالة الحجز</h3>
-      </div>
-      <div>
-        <span class="badge-large 
-          {% if booking.status == 'paid' %}ok
-          {% elif booking.status == 'pending_review' %}warn
-          {% elif booking.status == 'rejected' %}error
-          {% elif booking.status == 'used' %}used
-          {% elif booking.status == 'pending_proof' %}warn
-          {% endif %}">
-          {% if booking.status == 'paid' %}مدفوع
-          {% elif booking.status == 'pending_review' %}في انتظار المراجعة
-          {% elif booking.status == 'rejected' %}مرفوض
-          {% elif booking.status == 'used' %}تم الدخول
-          {% elif booking.status == 'pending_proof' %}في انتظار الإثبات
-          {% else %}{{ booking.status }}{% endif %}
-        </span>
-      </div>
-    </div>
-    {% if booking.approved_at %}
-      <p><strong>✅ تاريخ القبول:</strong> {{ booking.approved_at }}</p>
-    {% endif %}
-    {% if booking.rejected_at %}
-      <p><strong>❌ تاريخ الرفض:</strong> {{ booking.rejected_at }}</p>
-    {% endif %}
-    {% if booking.used_at %}
-      <p><strong>🚪 تاريخ الدخول:</strong> {{ booking.used_at }}</p>
-    {% endif %}
-  </div>
-  
-  <!-- صورة إثبات الدفع -->
-  {% if booking.payment_proof_path %}
-    <div style="margin: 30px 0; text-align: center;">
-      <h3 style="color: #764ba2;">📷 إثبات الدفع</h3>
-      <img class="proof" src="{{ url_for('uploaded_payment_proof', filename=basename(booking.payment_proof_path)) }}" style="max-width: 500px; border: 3px solid #764ba2; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-    </div>
-  {% endif %}
-  
-  <!-- صورة التذكرة -->
-  {% if booking.ticket_image_path %}
-    <div style="margin: 30px 0; text-align: center;">
-      <h3 style="color: #764ba2;">🎟 التذكرة</h3>
-      <img src="{{ url_for('static', filename='../' + booking.ticket_image_path) }}" style="max-width: 400px; border: 3px solid #764ba2; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-    </div>
-  {% endif %}
-  
-  <!-- الإجراءات الأساسية -->
-  <div class="actions" style="margin-top: 30px; border-top: 2px solid #eee; padding-top: 30px;">
-    
-    {% if booking.status == 'pending_review' %}
-      <form method="post" action="{{ url_for('admin_approve_booking', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('✅ هل أنت متأكد من قبول هذا الدفع؟')">
-        <button type="submit" class="btn btn-success">✅ قبول الدفع</button>
-      </form>
-      
-      <form method="post" action="{{ url_for('admin_reject_booking', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('❌ هل أنت متأكد من رفض هذا الدفع؟')">
-        <button type="submit" class="btn btn-danger">❌ رفض الدفع</button>
-      </form>
-    {% endif %}
-    
-    {% if booking.is_attending and booking.status in ['paid','used'] %}
-      <form method="post" action="{{ url_for('admin_resend_ticket', booking_id=booking.id) }}" style="display:inline;" onsubmit="return confirm('🔄 هل أنت متأكد من إعادة إرسال التذكرة؟')">
-        <button type="submit" class="btn btn-warning">🔄 إعادة إرسال التذكرة</button>
-      </form>
-    {% endif %}
-  </div>
-  
-  <!-- =============== قسم سجل الرسائل (جديد) =============== -->
-  <div style="margin-top: 40px; border-top: 2px solid #17a2b8; padding-top: 30px;">
-    <h3 style="color: #17a2b8; margin-bottom: 20px;">📨 سجل الرسائل المرسلة</h3>
-    
-    <!-- رسالة خطأ/تحذير -->
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for msg in messages %}
-          <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-            {{ msg }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-    
-    <!-- نموذج إرسال رسالة جديدة -->
-    <div style="background: #f8f9ff; padding: 20px; border-radius: 15px; margin-bottom: 25px;">
-      <h4 style="color: #333; margin-bottom: 15px;">إرسال رسالة جديدة</h4>
-      <form method="post" action="{{ url_for('admin_send_message', booking_id=booking.id) }}" onsubmit="return confirm('هل أنت متأكد من إرسال هذه الرسالة؟')">
-        <div style="margin-bottom: 15px;">
-          <textarea name="message" rows="4" placeholder="اكتب رسالتك هنا..." style="width: 100%; padding: 15px; border: 2px solid #17a2b8; border-radius: 10px; font-size: 1rem;" required></textarea>
-        </div>
-        <div>
-          <button type="submit" style="background: #17a2b8; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem;">
-            📨 إرسال الرسالة
-          </button>
-        </div>
-      </form>
-    </div>
-    
-    <!-- عرض الرسائل السابقة -->
-    <div id="messages-container">
-      <div style="text-align: center; padding: 20px;">
-        <span>جاري تحميل الرسائل...</span>
-      </div>
-    </div>
-  </div>
-  
-  <!-- الإجراءات الإدارية -->
-  <div style="margin-top: 40px; border-top: 2px dashed #dc3545; padding-top: 30px;">
-    <h3 style="color: #dc3545; margin-bottom: 20px;">⚠️ الإجراءات الإدارية</h3>
-    
-    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-      <!-- زر إلغاء الحجز -->
-      {% if booking.status != 'rejected' %}
-      <form method="post" action="{{ url_for('admin_reject_booking', booking_id=booking.id) }}" style="display:inline;" 
-            onsubmit="return confirm('⚠️ تحذير: هل أنت متأكد من إلغاء هذا الحجز؟\n\n• المستخدم سيتلقى إشعار بالإلغاء\n• حالة الحجز ستصبح مرفوض')">
-        <button type="submit" class="btn btn-cancel">⚠️ إلغاء الحجز</button>
-      </form>
-      {% endif %}
-      
-      <!-- زر مسح الحجز نهائياً -->
-      <form method="post" action="{{ url_for('admin_delete_booking', booking_id=booking.id) }}" style="display:inline;" 
-            onsubmit="return confirm('🚨 تحذير شديد: هل أنت متأكد من حذف هذا الحجز نهائياً؟\n\nهذا الإجراء لا يمكن التراجع عنه!\n• سيتم حذف جميع بيانات الحجز\n• سيتم حذف صور الإثبات\n• سيتم حذف سجلات الدخول\n• سيتم حذف سجل الرسائل\n\nهل أنت متأكد 100%؟')">
-        <button type="submit" class="btn btn-delete">🗑️ حذف الحجز نهائياً</button>
-      </form>
-    </div>
-    
-    <p style="color: #666; margin-top: 15px; font-size: 14px; background: #f8f9ff; padding: 10px; border-radius: 8px;">
-      <strong>ملاحظة:</strong> زر الإلغاء يغير حالة الحجز فقط، أما زر الحذف فيزيل الحجز نهائياً من قاعدة البيانات.
-    </p>
-  </div>
-</div>
+_bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN) if TELEGRAM_BOT_TOKEN else None
 
-<script>
-// تحميل سجل الرسائل
-function loadMessages() {
-  fetch('/admin/bookings/{{ booking.id }}/messages')
-    .then(response => response.json())
-    .then(data => {
-      const container = document.getElementById('messages-container');
-      
-      if (data.messages && data.messages.length > 0) {
-        let html = '<div style="background: #f8f9ff; border-radius: 10px; padding: 15px;">';
-        data.messages.forEach(msg => {
-          html += `
-            <div style="border-bottom: 1px solid #ddd; padding: 15px; margin-bottom: 10px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                <span style="color: #17a2b8; font-weight: bold;">📨 رسالة</span>
-                <span style="color: #666; font-size: 0.9rem;">${msg.sent_at}</span>
-              </div>
-              <div style="background: white; padding: 10px; border-radius: 5px; white-space: pre-wrap;">
-                ${msg.message}
-              </div>
-              <div style="margin-top: 5px; font-size: 0.8rem; color: #28a745;">
-                ✅ تم الإرسال
-              </div>
-            </div>
-          `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
-      } else {
-        container.innerHTML = '<div style="text-align: center; padding: 30px; background: #f8f9ff; border-radius: 10px; color: #666;">لا توجد رسائل سابقة</div>';
-      }
-    })
-    .catch(error => {
-      document.getElementById('messages-container').innerHTML = '<div style="text-align: center; padding: 30px; background: #f8d7da; border-radius: 10px; color: #721c24;">حدث خطأ في تحميل الرسائل</div>';
-    });
-}
+def notify_admin_new_proof(booking):
+    """إرسال إشعار للأدمن مع صورة الإيصال وأزرار قبول/رفض وتفاصيل الحجز"""
+    if not _bot:
+        return
+    
+    try:
+        # التحقق من وجود المفاتيح المطلوبة
+        name = booking['name'] if 'name' in booking.keys() else 'غير معروف'
+        phone = booking['phone'] if 'phone' in booking.keys() else 'غير معروف'
+        ticket_type = booking['ticket_type'] if 'ticket_type' in booking.keys() else 'غير معروف'
+        amount = booking['amount'] if 'amount' in booking.keys() else 0
+        payment_method = booking['payment_method'] if 'payment_method' in booking.keys() else 'غير معروف'
+        booking_code = booking['booking_code'] if 'booking_code' in booking.keys() else 'غير معروف'
+        booking_id = booking['id'] if 'id' in booking.keys() else 0
+        is_attending = booking['is_attending'] if 'is_attending' in booking.keys() else 0
+        
+        # تفاصيل إضافية للحضور
+        extra_people = booking['extra_people'] if 'extra_people' in booking.keys() else 0
+        pin_medal = booking['pin_medal'] if 'pin_medal' in booking.keys() else 0
+        
+        # بناء نص التفاصيل الإضافية
+        extra_details = ""
+        if is_attending:
+            extra_details = f"\n👥 أفراد إضافيين: {extra_people}"
+            extra_details += f"\n🎖️ بروش + ميدالية: {'نعم' if pin_medal else 'لا'}"
+        
+        # نص الرسالة
+        caption = (
+            f"📌 **طلب دفع جديد**\n\n"
+            f"👤 **الاسم:** {name}\n"
+            f"📞 **الهاتف:** {phone}\n"
+            f"🎫 **نوع التذكرة:** {ticket_label(ticket_type)}\n"
+            f"💰 **المبلغ:** {amount} جنيه\n"
+            f"💳 **طريقة الدفع:** {payment_method}\n"
+            f"🆔 **الكود:** {booking_code}\n"
+            f"{extra_details}\n\n"
+            f"🔗 **رابط المراجعة:** {BASE_URL}/admin/bookings/{booking_id}"
+        )
+        
+        # أزرار القبول والرفض
+        markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+        btn_approve = telebot.types.InlineKeyboardButton("✅ قبول", callback_data=f"approve_{booking_id}")
+        btn_reject = telebot.types.InlineKeyboardButton("❌ رفض", callback_data=f"reject_{booking_id}")
+        btn_review = telebot.types.InlineKeyboardButton("🔍 مراجعة", url=f"{BASE_URL}/admin/bookings/{booking_id}")
+        markup.add(btn_approve, btn_reject, btn_review)
+        
+        # إرسال الصورة مع الأزرار لكل أدمن
+        for admin_chat_id in ADMIN_CHAT_IDS:
+            try:
+                payment_proof_path = booking['payment_proof_path'] if 'payment_proof_path' in booking.keys() else None
+                if payment_proof_path and os.path.exists(payment_proof_path):
+                    with open(payment_proof_path, 'rb') as photo:
+                        _bot.send_photo(
+                            admin_chat_id,
+                            photo,
+                            caption=caption,
+                            reply_markup=markup,
+                            parse_mode='Markdown'
+                        )
+                else:
+                    _bot.send_message(admin_chat_id, caption + "\n\n⚠️ لا توجد صورة إيصال", reply_markup=markup, parse_mode='Markdown')
+            except Exception as e:
+                print(f"Error sending to admin {admin_chat_id}: {e}")
+    except Exception as e:
+        print(f"Error in notify_admin_new_proof: {e}")
+        traceback.print_exc()
 
-// تحميل الرسائل عند فتح الصفحة
-document.addEventListener('DOMContentLoaded', loadMessages);
-</script>
+def send_rejected_message(booking):
+    """إرسال رسالة رفض للمستخدم"""
+    if not _bot:
+        return
+    
+    try:
+        chat_id = booking['telegram_chat_id'] if 'telegram_chat_id' in booking.keys() else None
+        if chat_id:
+            _bot.send_message(
+                chat_id, 
+                "❌ لم يتم اعتماد صورة السداد الحالية. برجاء إعادة رفع صورة أوضح أو التواصل مع الإدارة."
+            )
+    except Exception as e:
+        print(f"Error sending rejected: {e}")
+        traceback.print_exc()
 
-<style>
-  .nav {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 30px;
-  }
-  .nav-link {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.3s ease;
-  }
-  .nav-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  }
-  .badge-large {
-    display: inline-block;
-    padding: 10px 25px;
-    border-radius: 30px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: white;
-  }
-  .badge-large.ok {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  }
-  .badge-large.warn {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  }
-  .badge-large.error {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  }
-  .badge-large.used {
-    background: linear-gradient(135deg, #6b8cff 0%, #4158d0 100%);
-  }
-  .btn {
-    padding: 12px 25px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    color: white;
-  }
-  .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  }
-  .btn-success {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  }
-  .btn-danger {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  }
-  .btn-warning {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  }
-  .btn-cancel {
-    background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
-  }
-  .btn-delete {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-  }
-  .actions {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-  }
-  .proof {
-    max-width: 100%;
-    height: auto;
-  }
-</style>
-{% endblock %}
+def send_ticket_message(booking):
+    """إرسال التذكرة للمستخدم بعد القبول"""
+    if not _bot:
+        print("❌ Cannot send ticket: no bot")
+        return
+    
+    try:
+        chat_id = booking['telegram_chat_id'] if 'telegram_chat_id' in booking.keys() else None
+        if not chat_id:
+            print("❌ Cannot send ticket: no chat_id")
+            return
+        
+        ticket_type = booking['ticket_type'] if 'ticket_type' in booking.keys() else 'unknown'
+        amount = booking['amount'] if 'amount' in booking.keys() else 0
+        ticket_image_path = booking['ticket_image_path'] if 'ticket_image_path' in booking.keys() else None
+        is_attending = booking['is_attending'] if 'is_attending' in booking.keys() else 0
+        
+        # تفاصيل إضافية للحضور
+        extra_people = booking['extra_people'] if 'extra_people' in booking.keys() else 0
+        pin_medal = booking['pin_medal'] if 'pin_medal' in booking.keys() else 0
+        
+        # بناء نص التفاصيل الإضافية
+        extra_details = ""
+        if is_attending and (extra_people > 0 or pin_medal):
+            extra_details = "\n📋 **تفاصيل الحجز:**"
+            if extra_people > 0:
+                extra_details += f"\n   • أفراد إضافيين: {extra_people}"
+            if pin_medal:
+                extra_details += f"\n   • بروش + ميدالية: نعم"
+        
+        msg = (
+            f"🎉 **تم تأكيد الدفع بنجاح**\n\n"
+            f"🎟 {EVENT_NAME} 🇪🇬\n\n"
+            "━━━━━━━━━━━━━━━\n\n"
+            f"🎫 **نوع التذكرة**\n{ticket_label(ticket_type)}\n"
+            f"💰 **قيمة التذكرة**\n{amount} جنيه\n"
+            f"{extra_details}\n\n"
+            f"🕠 **موعد الحفل**\n{EVENT_TIME}\n\n"
+            f"⏰ {EVENT_PRE_ARRIVAL_TEXT}\n\n"
+            f"📍 **مكان الحفل**\n{EVENT_LOCATION}\n{EVENT_MAP}\n\n"
+            "━━━━━━━━━━━━━━━\n\n"
+            "📲 يرجى الاحتفاظ بالـ QR Code لإبرازه عند الدخول.\n"
+            "⚠️ التذكرة صالحة لدخول مرة واحدة فقط."
+        )
+        _bot.send_message(chat_id, msg, parse_mode='Markdown')
+        
+        if ticket_image_path and os.path.exists(ticket_image_path):
+            with open(ticket_image_path, "rb") as f:
+                _bot.send_photo(chat_id, f)
+        print(f"✅ Ticket sent to {booking.get('name', 'unknown')}")
+    except Exception as e:
+        print(f"Error sending ticket: {e}")
+        traceback.print_exc()
+
+def send_thank_you_message(booking):
+    """إرسال رسالة شكر للمساهم"""
+    if not _bot:
+        return
+    
+    try:
+        chat_id = booking['telegram_chat_id'] if 'telegram_chat_id' in booking.keys() else None
+        amount = booking['amount'] if 'amount' in booking.keys() else 0
+        
+        if chat_id:
+            _bot.send_message(
+                chat_id,
+                f"❤️ **تم تأكيد المساهمة بنجاح**\n\n{EVENT_NAME}\n\n💰 **قيمة المساهمة**\n{amount} جنيه\n\nنشكر دعمكم الكريم ومساهمتكم في هذا الحدث الإنساني.\nونسأل الله أن يجعلها في ميزان حسناتكم.",
+                parse_mode='Markdown'
+            )
+    except Exception as e:
+        print(f"Error sending thank you: {e}")
+        traceback.print_exc()
+
+def send_broadcast(chat_ids, message):
+    """إرسال رسالة جماعية لمجموعة من المستخدمين"""
+    count = 0
+    if not _bot:
+        return count
+    for cid in chat_ids:
+        try:
+            _bot.send_message(cid, message, parse_mode='Markdown')
+            count += 1
+        except Exception:
+            pass
+    return count
+
+# =============== دالة إرسال رسالة للمستخدم ===============
+def send_message_to_user(chat_id, message):
+    """إرسال رسالة مباشرة لمستخدم"""
+    if not _bot:
+        return False
+    
+    try:
+        _bot.send_message(chat_id, message, parse_mode='Markdown')
+        print(f"✅ Message sent to user {chat_id}")
+        return True
+    except Exception as e:
+        print(f"❌ Error sending message to user {chat_id}: {e}")
+        return False
