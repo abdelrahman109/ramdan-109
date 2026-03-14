@@ -139,7 +139,11 @@ def send_ticket_message(booking):
         if ticket_image_path and os.path.exists(ticket_image_path):
             with open(ticket_image_path, "rb") as f:
                 _bot.send_photo(chat_id, f)
-        print(f"✅ Ticket sent to {booking.get('name', 'unknown')}")
+        
+        # تم تعديل هذا السطر - إزالة .get()
+        name = booking['name'] if 'name' in booking.keys() else 'unknown'
+        print(f"✅ Ticket sent to {name}")
+        
     except Exception as e:
         print(f"Error sending ticket: {e}")
         traceback.print_exc()
