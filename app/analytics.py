@@ -1,5 +1,6 @@
 from app.db import connect
 from app.config import EVENT_CAPACITY
+from app.services import get_pin_medal_stats
 
 def dashboard_stats():
     with connect() as conn:
@@ -24,27 +25,22 @@ def dashboard_stats():
         latest = conn.execute("SELECT * FROM bookings ORDER BY id DESC LIMIT 10").fetchall()
         
         # =============== إحصائيات InstaPay ===============
-        # عدد العمليات
         instapay_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='instapay' AND status IN ('paid','used')"
         ).fetchone()["c"]
         
-        # قيمة الحضور
         instapay_attendees_value = conn.execute(
             "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='instapay' AND is_attending=1 AND status IN ('paid','used')"
         ).fetchone()["s"]
         
-        # قيمة المساهمات
         instapay_contributions_value = conn.execute(
             "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='instapay' AND is_attending=0 AND status IN ('paid','used')"
         ).fetchone()["s"]
         
-        # عدد الحضور (للعرض فقط)
         instapay_attendees_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='instapay' AND is_attending=1 AND status IN ('paid','used')"
         ).fetchone()["c"]
         
-        # عدد المساهمات (للعرض فقط)
         instapay_contributions_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='instapay' AND is_attending=0 AND status IN ('paid','used')"
         ).fetchone()["c"]
@@ -54,27 +50,22 @@ def dashboard_stats():
         ).fetchone()["s"]
         
         # =============== إحصائيات المحفظة ===============
-        # عدد العمليات
         wallet_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='wallet' AND status IN ('paid','used')"
         ).fetchone()["c"]
         
-        # قيمة الحضور
         wallet_attendees_value = conn.execute(
             "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='wallet' AND is_attending=1 AND status IN ('paid','used')"
         ).fetchone()["s"]
         
-        # قيمة المساهمات
         wallet_contributions_value = conn.execute(
             "SELECT COALESCE(SUM(amount),0) s FROM bookings WHERE payment_method='wallet' AND is_attending=0 AND status IN ('paid','used')"
         ).fetchone()["s"]
         
-        # عدد الحضور (للعرض فقط)
         wallet_attendees_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='wallet' AND is_attending=1 AND status IN ('paid','used')"
         ).fetchone()["c"]
         
-        # عدد المساهمات (للعرض فقط)
         wallet_contributions_count = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE payment_method='wallet' AND is_attending=0 AND status IN ('paid','used')"
         ).fetchone()["c"]
@@ -98,15 +89,28 @@ def dashboard_stats():
         else:
             total_pin_medal = 0
         
-        # إحصائيات تفصيلية للضيوف
+        # إحصائيات البروشات المسلمة من services
+        pin_stats = get_pin_medal_stats()
+        
+        # إحصائيات تفصيلية للضيوف - تصحيح
         attendees_with_extra = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE is_attending=1 AND extra_people>0 AND status IN ('paid','used')"
         ).fetchone()["c"] if 'extra_people' in columns else 0
         
         attendees_without_extra = attendees - attendees_with_extra
         
+        # إجمالي الضيوف الكلي (أساسي + إضافيين)
         total_guests = attendees + total_extra_people
+        
+        # السعة المتبقية
         remaining_capacity = max(EVENT_CAPACITY - total_guests, 0)
+        
+        # إحصائيات البروش من settings
+        pin_medal_stats = {
+            'available': pin_stats['available'],
+            'delivered': pin_stats['delivered'],
+            'remaining': pin_stats['remaining']
+        }
 
     return {
         # أساسيات
@@ -120,27 +124,27 @@ def dashboard_stats():
         "remaining": remaining_capacity,
         "latest": latest,
         
-        # =============== إحصائيات InstaPay ===============
+        # إحصائيات InstaPay
         "instapay": {
-            "count": instapay_count,                          # عدد العمليات (حصر)
-            "attendees_value": instapay_attendees_value,      # قيمة الحضور (بالجنيه)
-            "contributions_value": instapay_contributions_value, # قيمة المساهمات (بالجنيه)
-            "attendees_count": instapay_attendees_count,      # عدد الحضور (للعرض)
-            "contributions_count": instapay_contributions_count, # عدد المساهمات (للعرض)
-            "total": instapay_total                            # الإجمالي الكلي
+            "count": instapay_count,
+            "attendees_value": instapay_attendees_value,
+            "contributions_value": instapay_contributions_value,
+            "attendees_count": instapay_attendees_count,
+            "contributions_count": instapay_contributions_count,
+            "total": instapay_total
         },
         
-        # =============== إحصائيات المحفظة ===============
+        # إحصائيات المحفظة
         "wallet": {
-            "count": wallet_count,                             # عدد العمليات (حصر)
-            "attendees_value": wallet_attendees_value,         # قيمة الحضور (بالجنيه)
-            "contributions_value": wallet_contributions_value, # قيمة المساهمات (بالجنيه)
-            "attendees_count": wallet_attendees_count,         # عدد الحضور (للعرض)
-            "contributions_count": wallet_contributions_count, # عدد المساهمات (للعرض)
-            "total": wallet_total                               # الإجمالي الكلي
+            "count": wallet_count,
+            "attendees_value": wallet_attendees_value,
+            "contributions_value": wallet_contributions_value,
+            "attendees_count": wallet_attendees_count,
+            "contributions_count": wallet_contributions_count,
+            "total": wallet_total
         },
         
-        # =============== إحصائيات الضيوف والبروش ===============
+        # إحصائيات الضيوف
         "guests": {
             "total_guests": total_guests,
             "attendees": attendees,
@@ -149,7 +153,15 @@ def dashboard_stats():
             "without_extra": attendees_without_extra
         },
         
+        # إحصائيات البروش
+        "pin_medal_stats": pin_medal_stats,
         "pin_medal": {
             "count": total_pin_medal
-        }
+        },
+        
+        # إحصائيات إضافية للعرض
+        "total_extra_people": total_extra_people,
+        "attendees_with_extra": attendees_with_extra,
+        "attendees_without_extra": attendees_without_extra,
+        "total_guests": total_guests
     }
