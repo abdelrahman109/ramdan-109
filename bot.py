@@ -526,6 +526,12 @@ def on_text(message):
         traceback.print_exc()
         bot.reply_to(message, "حدث خطأ، حاول مرة أخرى")
 
+# =============== إغلاق اتصال قاعدة البيانات ===============
+import atexit
+from app.db import close_connection
+
+atexit.register(close_connection)
+
 # =============== تشغيل البوت ===============
 if __name__ == "__main__":
     print("✅ Bot is running...")
