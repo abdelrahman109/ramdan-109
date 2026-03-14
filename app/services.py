@@ -9,28 +9,51 @@ from app.utils import generate_booking_code, generate_token, now_str
 from app.storage import qr_path, ticket_path
 from app.tickets import create_ticket_image
 
-# =============== دوال البروشات ===============
+# =============== دوال البروشات الجديدة ===============
 def get_pin_medal_stats():
-    """الحصول على إحصائيات البروشات"""
+    """الحصول على إحصائيات البروشات الكاملة"""
     with connect() as conn:
         available = conn.execute(
             "SELECT value FROM settings WHERE key='total_pin_medal_available'"
+        ).fetchone()
+        purchased = conn.execute(
+            "SELECT value FROM settings WHERE key='total_pin_medal_purchased'"
         ).fetchone()
         delivered = conn.execute(
             "SELECT value FROM settings WHERE key='total_pin_medal_delivered'"
         ).fetchone()
         
         available_count = int(available['value']) if available else 200
+        purchased_count = int(purchased['value']) if purchased else 0
         delivered_count = int(delivered['value']) if delivered else 0
         
         return {
             'available': available_count,
+            'purchased': purchased_count,
             'delivered': delivered_count,
-            'remaining': available_count - delivered_count
+            'remaining_for_purchase': available_count - purchased_count,
+            'remaining_for_delivery': purchased_count - delivered_count
         }
 
+def increment_pin_medal_purchased():
+    """زيادة عداد البروشات المشتراة (عند إنشاء الحجز)"""
+    with connect() as conn:
+        current = conn.execute(
+            "SELECT value FROM settings WHERE key='total_pin_medal_purchased'"
+        ).fetchone()
+        
+        if current:
+            new_value = int(current['value']) + 1
+            conn.execute(
+                "UPDATE settings SET value=?, updated_at=? WHERE key='total_pin_medal_purchased'",
+                (str(new_value), now_str())
+            )
+            print(f"✅ Pin medal PURCHASED count increased to {new_value}")
+            return new_value
+    return 0
+
 def increment_pin_medal_delivered():
-    """زيادة عداد البروشات المسلمة عند الدخول"""
+    """زيادة عداد البروشات المسلمة (عند الدخول)"""
     with connect() as conn:
         current = conn.execute(
             "SELECT value FROM settings WHERE key='total_pin_medal_delivered'"
@@ -42,14 +65,14 @@ def increment_pin_medal_delivered():
                 "UPDATE settings SET value=?, updated_at=? WHERE key='total_pin_medal_delivered'",
                 (str(new_value), now_str())
             )
-            print(f"✅ Pin medal delivered count increased to {new_value}")
+            print(f"✅ Pin medal DELIVERED count increased to {new_value}")
             return new_value
     return 0
 
-def check_pin_medal_available():
-    """التحقق من وجود بروشات متاحة"""
+def check_pin_medal_available_for_purchase():
+    """التحقق من وجود بروشات متاحة للشراء"""
     stats = get_pin_medal_stats()
-    return stats['remaining'] > 0
+    return stats['remaining_for_purchase'] > 0
 
 def get_total_guests_stats():
     """الحصول على إحصائيات الضيوف الكلية"""
@@ -72,15 +95,15 @@ def get_total_guests_stats():
             'total_guests': total_guests
         }
 
-# =============== دوال إلغاء الطلبات المعلقة ===============
+# =============== دوال إلغاء الطلبات المعلقة (10 دقائق) ===============
 def cancel_expired_bookings():
-    """إلغاء الحجوزات التي مضى على إنشائها أكثر من 15 دقيقة ولم يتم رفع صورة الدفع"""
+    """إلغاء الحجوزات التي مضى على إنشائها أكثر من 10 دقائق ولم يتم رفع صورة الدفع"""
     try:
         with connect() as conn:
-            # حساب الوقت قبل 15 دقيقة
-            expiry_time = (datetime.now() - timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+            # حساب الوقت قبل 10 دقائق
+            expiry_time = (datetime.now() - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
             
-            # البحث عن الحجوزات المعلقة (pending_proof) التي مضى عليها 15 دقيقة
+            # البحث عن الحجوزات المعلقة (pending_proof) التي مضى عليها 10 دقائق
             expired = conn.execute("""
                 SELECT * FROM bookings 
                 WHERE status='pending_proof' 
@@ -100,7 +123,7 @@ def cancel_expired_bookings():
                 conn.execute("""
                     INSERT INTO admin_actions (booking_id, booking_code, action_type, admin_name, notes, created_at) 
                     VALUES (?, ?, ?, ?, ?, ?)
-                """, (booking['id'], booking['booking_code'], "auto_cancel", "system", "تم الإلغاء تلقائياً لعدم رفع إيصال الدفع خلال 15 دقيقة", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                """, (booking['id'], booking['booking_code'], "auto_cancel", "system", "تم الإلغاء تلقائياً لعدم رفع إيصال الدفع خلال 10 دقائق", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                 
                 cancelled_count += 1
                 print(f"✅ Auto-cancelled booking {booking['booking_code']} - {booking['name']}")
@@ -117,7 +140,7 @@ def get_expired_bookings_count():
     """الحصول على عدد الحجوزات المنتهية (للعرض)"""
     try:
         with connect() as conn:
-            expiry_time = (datetime.now() - timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+            expiry_time = (datetime.now() - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
             count = conn.execute("""
                 SELECT COUNT(*) as c FROM bookings 
                 WHERE status='pending_proof' 
@@ -134,11 +157,14 @@ def create_booking(chat_id, name, phone, ticket_type, amount, payment_method, ex
     code = generate_booking_code()
     ts = now_str()
     with connect() as conn:
-        # التحقق من وجود البروشات المتاحة إذا كان الحجز يتضمن بروش
+        # التحقق من وجود بروشات متاحة للشراء إذا كان الحجز يتضمن بروش
         if pin_medal:
             stats = get_pin_medal_stats()
-            if stats['remaining'] <= 0:
+            if stats['remaining_for_purchase'] <= 0:
                 raise Exception("عذراً، نفذت كمية البروشات والميداليات")
+            
+            # زيادة عداد المشتريات
+            increment_pin_medal_purchased()
         
         conn.execute('''
             INSERT INTO bookings (
@@ -271,18 +297,10 @@ def checkin(qr_token, gate_name, checked_in_by):
                         (ts, gate_name, checked_in_by, ts, booking["id"])
                     )
                     
-                    # طباعة للتأكد من قيمة pin_medal
-                    print(f"🔍 DEBUG - Booking ID: {booking['id']}, Booking Code: {booking['booking_code']}")
-                    print(f"🔍 DEBUG - Pin medal value: {booking['pin_medal']}")
-                    print(f"🔍 DEBUG - Pin medal type: {type(booking['pin_medal'])}")
-                    
-                    # لو التذكرة فيها بروش، زود العداد
+                    # لو التذكرة فيها بروش، زود عداد التسليم
                     if booking['pin_medal'] and booking['pin_medal'] == 1:
-                        print("🔍 DEBUG - Condition met, incrementing counter")
                         increment_pin_medal_delivered()
-                        print(f"✅ Pin medal delivered count increased for booking {booking['booking_code']}")
-                    else:
-                        print("🔍 DEBUG - Condition NOT met")
+                        print(f"✅ Pin medal delivered for booking {booking['booking_code']}")
                     
                     conn.execute(
                         "INSERT INTO checkins (booking_id, booking_code, checked_in_at, gate_name, checked_in_by, result) VALUES (?, ?, ?, ?, ?, ?)",
