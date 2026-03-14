@@ -1,9 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 import os
+import atexit  # تمت الإضافة
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.config import SECRET_KEY, ADMIN_PASSWORD, EVENT_NAME, EVENT_LOCATION, EVENT_MAP, EVENT_TIME, UPLOADS_DIR, BASE_URL
-from app.db import init_db, connect
+from app.db import init_db, connect, close_connection  # تمت إضافة close_connection
 from app.utils import ticket_label, payment_label, basename
 from app.analytics import dashboard_stats
 from app.reports import bookings_csv_response, checkins_csv_response
@@ -14,6 +15,9 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.secret_key = SECRET_KEY
 init_db()
+
+# إغلاق اتصال قاعدة البيانات عند إيقاف التطبيق - تمت الإضافة
+atexit.register(close_connection)
 
 @app.context_processor
 def inject_globals():
