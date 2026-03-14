@@ -6,12 +6,14 @@ from app.utils import ensure_dirs, now_str
 ensure_dirs("instance")
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
+    """الحصول على اتصال بقاعدة البيانات مع timeout 10 ثواني"""
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     return conn
 
 @contextmanager
 def connect():
+    """إدارة اتصال قاعدة البيانات"""
     conn = get_connection()
     try:
         yield conn
