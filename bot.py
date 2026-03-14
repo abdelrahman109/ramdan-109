@@ -708,4 +708,33 @@ def on_text(message):
                 bot.reply_to(message, "رقم الهاتف غير صحيح. اكتب رقمًا مصريًا صحيحًا يبدأ بـ 01", 
                             reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
                 return
-            data["
+            data["phone"] = phone
+            set_session(message.chat.id, "select_payment_method", data)
+            bot.send_message(message.chat.id, "اختر طريقة الدفع المناسبة", reply_markup=payment_method_keyboard())
+            return
+            
+        bot.reply_to(message, "استخدم /start للبدء", 
+                    reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
+    except Exception as e:
+        print(f"Error in on_text: {e}")
+        traceback.print_exc()
+        bot.reply_to(message, "حدث خطأ، حاول مرة أخرى")
+
+# =============== إغلاق اتصال قاعدة البيانات ===============
+import atexit
+from app.db import close_connection
+
+atexit.register(close_connection)
+
+# =============== تشغيل البوت ===============
+if __name__ == "__main__":
+    print("✅ Bot is running...")
+    while True:
+        try:
+            bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            print(f"❌ Bot crashed: {e}")
+            traceback.print_exc()
+            print("🔄 Restarting bot in 5 seconds...")
+            import time
+            time.sleep(5)
