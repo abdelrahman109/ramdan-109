@@ -37,7 +37,7 @@
   <!-- إجمالي الضيوف -->
   <div class="guest-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
     <div class="guest-title">إجمالي الضيوف</div>
-    <div class="guest-main">{{ stats.total_guests if stats.total_guests else 0 }}</div>
+    <div class="guest-main">{{ stats.guests.total_guests if stats.guests and stats.guests.total_guests else 0 }}</div>
     <div class="guest-details">
       <div>أساسي: {{ stats.attendees }}</div>
       <div>إضافي: {{ stats.total_extra_people if stats.total_extra_people else 0 }}</div>
@@ -72,7 +72,7 @@
         <div class="stat-label">متبقي</div>
       </div>
     </div>
-    <div class="guest-total" style="margin-top: 15px; text-align: center; font-size: 1.2rem;">
+    <div class="guest-total" style="margin-top: 15px; text-align: center; font-size: 1.2rem; background: rgba(255,255,255,0.2); padding: 8px; border-radius: 10px;">
       إجمالي متاح: {{ stats.pin_medal_stats.available if stats.pin_medal_stats else 200 }}
     </div>
   </div>
@@ -95,10 +95,12 @@
       <div class="value-box">
         <div class="value-amount">{{ stats.instapay.attendees_value if stats.instapay else 0 }} جنيه</div>
         <div class="value-label">قيمة الحضور</div>
+        <div class="value-count">({{ stats.instapay.attendees_count if stats.instapay else 0 }} عملية)</div>
       </div>
       <div class="value-box">
         <div class="value-amount">{{ stats.instapay.contributions_value if stats.instapay else 0 }} جنيه</div>
         <div class="value-label">قيمة المساهمات</div>
+        <div class="value-count">({{ stats.instapay.contributions_count if stats.instapay else 0 }} عملية)</div>
       </div>
     </div>
     
@@ -120,10 +122,12 @@
       <div class="value-box">
         <div class="value-amount">{{ stats.wallet.attendees_value if stats.wallet else 0 }} جنيه</div>
         <div class="value-label">قيمة الحضور</div>
+        <div class="value-count">({{ stats.wallet.attendees_count if stats.wallet else 0 }} عملية)</div>
       </div>
       <div class="value-box">
         <div class="value-amount">{{ stats.wallet.contributions_value if stats.wallet else 0 }} جنيه</div>
         <div class="value-label">قيمة المساهمات</div>
+        <div class="value-count">({{ stats.wallet.contributions_count if stats.wallet else 0 }} عملية)</div>
       </div>
     </div>
     
@@ -203,6 +207,10 @@
       {% endfor %}
     </tbody>
   </table>
+  
+  {% if stats.latest|length == 0 %}
+    <p style="text-align: center; padding: 30px; color: #666;">لا توجد حجوزات حديثة</p>
+  {% endif %}
 </div>
 
 <style>
@@ -298,6 +306,11 @@
     border-radius: 10px;
   }
   
+  .guest-total {
+    font-size: 1rem;
+    font-weight: bold;
+  }
+  
   /* إحصائيات طرق الدفع */
   .payment-grid {
     display: grid;
@@ -335,6 +348,11 @@
     color: #333;
   }
   
+  .count-label {
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
   .payment-values {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -353,6 +371,17 @@
     font-size: 1.3rem;
     font-weight: bold;
     color: #28a745;
+  }
+  
+  .value-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 5px 0;
+  }
+  
+  .value-count {
+    font-size: 0.8rem;
+    color: #999;
   }
   
   .payment-total {
