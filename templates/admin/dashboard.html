@@ -59,21 +59,21 @@
     </div>
   </div>
   
-  <!-- إحصائيات البروش والميدالية -->
+  <!-- إحصائيات البروش والميدالية (عدادين) -->
   <div class="guest-card" style="background: linear-gradient(135deg, #9a7b2f 0%, #d9b96d 100%);">
     <div class="guest-title">بروش + ميدالية</div>
     <div class="guest-stats">
       <div class="guest-stat">
-        <div class="stat-value">{{ stats.pin_medal_stats.delivered if stats.pin_medal_stats else 0 }}</div>
-        <div class="stat-label">تم التسليم</div>
+        <div class="stat-value">{{ stats.pin_medal_stats.purchased if stats.pin_medal_stats else 0 }}</div>
+        <div class="stat-label">تم شراؤها</div>
       </div>
       <div class="guest-stat">
-        <div class="stat-value">{{ stats.pin_medal_stats.remaining if stats.pin_medal_stats else 200 }}</div>
-        <div class="stat-label">متبقي</div>
+        <div class="stat-value">{{ stats.pin_medal_stats.delivered if stats.pin_medal_stats else 0 }}</div>
+        <div class="stat-label">تم تسليمها</div>
       </div>
     </div>
     <div class="guest-total" style="margin-top: 15px; text-align: center; font-size: 1.2rem; background: rgba(255,255,255,0.2); padding: 8px; border-radius: 10px;">
-      إجمالي متاح: {{ stats.pin_medal_stats.available if stats.pin_medal_stats else 200 }}
+      متاح للشراء: {{ stats.pin_medal_stats.remaining_for_purchase if stats.pin_medal_stats else 200 }}
     </div>
   </div>
 </div>
@@ -191,12 +191,14 @@
             {% elif b.status == 'rejected' %}error
             {% elif b.status == 'used' %}used
             {% elif b.status == 'pending_proof' %}warn
+            {% elif b.status == 'cancelled' %}error
             {% endif %}">
             {% if b.status == 'paid' %}مدفوع
             {% elif b.status == 'pending_review' %}في الانتظار
             {% elif b.status == 'rejected' %}مرفوض
             {% elif b.status == 'used' %}تم الدخول
             {% elif b.status == 'pending_proof' %}في انتظار الإثبات
+            {% elif b.status == 'cancelled' %}ملغي
             {% else %}{{ b.status }}{% endif %}
           </span>
         </td>
