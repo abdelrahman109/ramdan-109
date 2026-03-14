@@ -203,7 +203,7 @@ def checkin(qr_token, gate_name, checked_in_by):
         return result
     
     # محاولة التنفيذ مع إعادة المحاولة إذا كانت قاعدة البيانات مقفولة
-    max_retries = 3
+    max_retries = 5  # زودنا من 3 لـ 5
     for attempt in range(max_retries):
         try:
             with connect() as conn:
@@ -236,6 +236,7 @@ def checkin(qr_token, gate_name, checked_in_by):
                 time.sleep(0.5)  # انتظار نصف ثانية قبل إعادة المحاولة
                 continue
             else:
+                print(f"❌ Database error after {attempt + 1} attempts: {e}")
                 raise e
     return result
 
