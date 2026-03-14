@@ -123,7 +123,7 @@ def init_db():
             )
             print("✅ Initialized delivered pin medal counter with 0")
         
-        # إنشاء باقي الجداول
+        # إنشاء جدول checkins
         conn.execute('''
             CREATE TABLE IF NOT EXISTS checkins (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,6 +136,7 @@ def init_db():
             )
         ''')
         
+        # إنشاء جدول admin_actions
         conn.execute('''
             CREATE TABLE IF NOT EXISTS admin_actions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -148,6 +149,7 @@ def init_db():
             )
         ''')
         
+        # إنشاء جدول broadcast_logs
         conn.execute('''
             CREATE TABLE IF NOT EXISTS broadcast_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -160,12 +162,26 @@ def init_db():
             )
         ''')
         
+        # إنشاء جدول bot_sessions
         conn.execute('''
             CREATE TABLE IF NOT EXISTS bot_sessions (
                 telegram_chat_id INTEGER PRIMARY KEY,
                 state TEXT,
                 data_json TEXT,
                 updated_at TEXT NOT NULL
+            )
+        ''')
+        
+        # =============== جدول سجل الرسائل (جديد) ===============
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS message_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                booking_id INTEGER NOT NULL,
+                booking_code TEXT NOT NULL,
+                admin_name TEXT,
+                message TEXT NOT NULL,
+                sent_at TEXT NOT NULL,
+                status TEXT DEFAULT 'sent'
             )
         ''')
         
