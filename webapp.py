@@ -127,11 +127,18 @@ def admin_approve_booking(booking_id):
         return redirect(url_for("admin_login"))
     
     try:
-        booking = approve_booking(booking_id)
-        
-        if not booking:
+        # التحقق من حالة الحجز قبل القبول
+        booking_check = get_booking_by_id(booking_id)
+        if not booking_check:
             flash("❌ الحجز غير موجود")
             return redirect(request.referrer or url_for("admin_bookings"))
+        
+        # منع قبول الحجوزات المرفوضة أو الملغية
+        if booking_check['status'] in ['rejected', 'cancelled']:
+            flash(f"⚠️ لا يمكن قبول حجز حالته: {booking_check['status']}")
+            return redirect(request.referrer or url_for("admin_bookings"))
+        
+        booking = approve_booking(booking_id)
         
         if not booking['telegram_chat_id']:
             flash("⚠️ تحذير: لا يوجد معرف محادثة للمستخدم")
@@ -159,6 +166,17 @@ def admin_reject_booking(booking_id):
         return redirect(url_for("admin_login"))
     
     try:
+        # التحقق من حالة الحجز قبل الرفض
+        booking_check = get_booking_by_id(booking_id)
+        if not booking_check:
+            flash("❌ الحجز غير موجود")
+            return redirect(request.referrer or url_for("admin_bookings"))
+        
+        # منع رفض الحجوزات المقبولة أو المستخدمة أو الملغية
+        if booking_check['status'] in ['paid', 'used', 'cancelled']:
+            flash(f"⚠️ لا يمكن رفض حجز حالته: {booking_check['status']}")
+            return redirect(request.referrer or url_for("admin_bookings"))
+        
         booking = reject_booking(booking_id)
         
         if booking and booking['telegram_chat_id']:
@@ -217,7 +235,7 @@ def admin_delete_booking(booking_id):
             # حذف السجلات المرتبطة
             conn.execute("DELETE FROM checkins WHERE booking_id = ?", (booking_id,))
             conn.execute("DELETE FROM admin_actions WHERE booking_id = ?", (booking_id,))
-            conn.execute("DELETE FROM message_log WHERE booking_id = ?", (booking_id,))  # حذف سجل الرسائل
+            conn.execute("DELETE FROM message_log WHERE booking_id = ?", (booking_id,))
             
             # حذف الحجز
             conn.execute("DELETE FROM bookings WHERE id = ?", (booking_id,))
@@ -241,7 +259,7 @@ def admin_delete_booking(booking_id):
     
     return redirect(url_for("admin_bookings"))
 
-# =============== رسائل للمستخدم (جديد) ===============
+# =============== رسائل للمستخدم ===============
 @app.route("/admin/bookings/<int:booking_id>/send-message", methods=["POST"])
 def admin_send_message(booking_id):
     """إرسال رسالة للمستخدم وتسجيلها"""
