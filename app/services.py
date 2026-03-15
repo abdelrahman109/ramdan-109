@@ -100,8 +100,8 @@ def cancel_expired_bookings():
     """إلغاء الحجوزات التي مضى على إنشائها أكثر من 10 دقائق ولم يتم رفع صورة الدفع"""
     try:
         with connect() as conn:
-            # حساب الوقت قبل 10 دقائق
-            expiry_time = (datetime.now() - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
+            # حساب الوقت قبل 10 دقائق (باستخدام UTC دائماً)
+            expiry_time = (datetime.utcnow() - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
             
             # البحث عن الحجوزات المعلقة (pending_proof) التي مضى عليها 10 دقائق
             expired = conn.execute("""
@@ -117,13 +117,17 @@ def cancel_expired_bookings():
                     UPDATE bookings 
                     SET status='cancelled', updated_at=? 
                     WHERE id=?
-                """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), booking['id']))
+                """, (datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), booking['id']))
                 
                 # تسجيل الإلغاء في admin_actions
                 conn.execute("""
                     INSERT INTO admin_actions (booking_id, booking_code, action_type, admin_name, notes, created_at) 
                     VALUES (?, ?, ?, ?, ?, ?)
-                """, (booking['id'], booking['booking_code'], "auto_cancel", "system", "تم الإلغاء تلقائياً لعدم رفع إيصال الدفع خلال 10 دقائق", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                """, (booking['id'], booking['booking_code'], "auto_cancel", "system", "تم الإلغاء تلقائياً لعدم رفع إيصال الدفع خلال 10 دقائق", datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")))
+                
+                # إرسال إشعار للمستخدم
+                from app.notifications import send_auto_cancel_notification
+                send_auto_cancel_notification(booking)
                 
                 cancelled_count += 1
                 print(f"✅ Auto-cancelled booking {booking['booking_code']} - {booking['name']}")
@@ -140,7 +144,7 @@ def get_expired_bookings_count():
     """الحصول على عدد الحجوزات المنتهية (للعرض)"""
     try:
         with connect() as conn:
-            expiry_time = (datetime.now() - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
+            expiry_time = (datetime.utcnow() - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
             count = conn.execute("""
                 SELECT COUNT(*) as c FROM bookings 
                 WHERE status='pending_proof' 
@@ -261,7 +265,7 @@ def reject_booking(booking_id, admin_name="admin"):
         if not booking:
             raise Exception("الحجز غير موجود")
         
-        # منع رفض الحجوزات المقبولة أو الملغية
+        # منع رفض الحجوزات المقبولة أو المستخدمة أو الملغية
         if booking['status'] in ['paid', 'used', 'cancelled']:
             raise Exception(f"لا يمكن رفض حجز حالته: {booking['status']}")
         
