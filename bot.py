@@ -522,12 +522,14 @@ def on_payment(c):
                 "📌 **بعد التحويل، أرسل صورة الإيصال هنا**"
             )
         
-        # رسالة التأكيد الكاملة
+        # رسالة التأكيد الكاملة مع تحذير المهلة
         confirm_msg = (
             f"✅ **تم تسجيل طلبك بنجاح**\n\n"
             f"👤 **الاسم:** {data['name']}\n"
             f"💰 **المبلغ المطلوب:** {data['amount']} جنيه\n"
             f"🔢 **رقم الطلب:** {booking['booking_code']}\n\n"
+            f"⏰ **⚠️ مهم جداً:** لديك **10 دقائق فقط** لرفع صورة إيصال الدفع.\n"
+            f"إذا لم تقم برفع الصورة خلال 10 دقائق، سيتم إلغاء الطلب تلقائياً.\n\n"
             f"{text}"
         )
         
@@ -606,6 +608,11 @@ def handle_admin_decision(call):
         print(f"📋 Extra people: {booking_dict.get('extra_people', 0)}, Pin medal: {booking_dict.get('pin_medal', 0)}")
         
         if action == 'approve':
+            # التحقق من إمكانية القبول
+            if booking_dict.get('status') in ['rejected', 'cancelled']:
+                bot.answer_callback_query(call.id, f"❌ لا يمكن قبول حجز حالته: {booking_dict.get('status')}", show_alert=True)
+                return
+            
             # قبول الدفع
             booking_result = approve_booking(booking_id)
             
@@ -642,6 +649,11 @@ def handle_admin_decision(call):
                 print(f"⚠️ Error editing admin message: {e}")
             
         elif action == 'reject':
+            # التحقق من إمكانية الرفض
+            if booking_dict.get('status') in ['paid', 'used', 'cancelled']:
+                bot.answer_callback_query(call.id, f"❌ لا يمكن رفض حجز حالته: {booking_dict.get('status')}", show_alert=True)
+                return
+            
             # رفض الدفع
             booking_result = reject_booking(booking_id)
             send_rejected_message(booking_result)
