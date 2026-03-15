@@ -697,18 +697,35 @@ def on_text(message):
                 bot.reply_to(message, "❌ الرسالة قصيرة جداً. اكتب رسالة أطول (على الأقل 5 أحرف):")
                 return
             
+            # البحث عن آخر حجز للمستخدم
+            user_id = message.from_user.id
+            booking_code = "لا يوجد"
+            booking_id = 0
+            
+            with connect() as conn:
+                last_booking = conn.execute(
+                    "SELECT booking_code, id FROM bookings WHERE telegram_chat_id=? ORDER BY id DESC LIMIT 1",
+                    (user_id,)
+                ).fetchone()
+                
+                if last_booking:
+                    booking_code = last_booking['booking_code']
+                    booking_id = last_booking['id']
+            
             # إرسال الرسالة لجميع الأدمن
             user_name = message.from_user.first_name
             user_username = message.from_user.username or "لا يوجد"
-            user_id = message.from_user.id
             
             support_msg = (
                 f"📞 **رسالة دعم جديدة**\n\n"
                 f"👤 **المستخدم:** {user_name}\n"
                 f"🆔 **المعرف:** @{user_username}\n"
-                f"🔢 **الآيدي:** {user_id}\n\n"
+                f"🔢 **الآيدي:** {user_id}\n"
+                f"🔑 **آخر كود حجز:** `{booking_code}`\n\n"
                 f"📝 **الرسالة:**\n{message_text}\n\n"
-                f"💬 للرد، استخدم أمر /send ثم أدخل كود الحجز (إذا كان لديه حجز)"
+                f"💬 **للرد:** استخدم الأمر التالي:\n"
+                f"`/send` ثم أدخل الكود `{booking_code}`\n"
+                f"أو استخدم الرابط: {BASE_URL}/admin/bookings/{booking_id}"
             )
             
             # إرسال لكل أدمن
@@ -720,12 +737,12 @@ def on_text(message):
                 except Exception as e:
                     print(f"Error sending to admin {admin_id}: {e}")
             
-            # تسجيل الرسالة في قاعدة البيانات (اختياري)
+            # تسجيل الرسالة في قاعدة البيانات
             try:
                 with connect() as conn:
                     conn.execute(
                         "INSERT INTO message_log (booking_id, booking_code, admin_name, message, sent_at, status) VALUES (?, ?, ?, ?, datetime('now'), ?)",
-                        (0, "SUPPORT", f"user_{user_id}", message_text, "sent_to_admins")
+                        (booking_id, booking_code, f"user_{user_id}", message_text, "sent_to_admins")
                     )
             except:
                 pass
