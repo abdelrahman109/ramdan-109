@@ -39,6 +39,8 @@ def check_expired_bookings():
             
             if cancelled > 0:
                 logger.info(f"✅ Successfully cancelled {cancelled} bookings")
+                
+                # إرسال إشعارات للمستخدمين (الـ notifications.py هتتعامل مع ده)
             else:
                 logger.warning("⚠️ Found expired bookings but cancellation failed")
         else:
