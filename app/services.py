@@ -227,11 +227,23 @@ def update_payment_proof(booking_id, path):
         ''', (path, ts, ts, booking_id))
 
 def approve_booking(booking_id, admin_name="admin"):
+    """قبول الحجز - مع التأكد من أنه ليس مرفوضاً"""
     ts = now_str()
     with connect() as conn:
+        # التحقق من حالة الحجز الحالية
+        booking = conn.execute("SELECT status FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+        
+        if not booking:
+            raise Exception("الحجز غير موجود")
+        
+        # منع قبول الحجوزات المرفوضة أو الملغية
+        if booking['status'] in ['rejected', 'cancelled']:
+            raise Exception(f"لا يمكن قبول حجز حالته: {booking['status']}")
+        
         conn.execute('''
             UPDATE bookings SET status=?, approved_at=?, updated_at=? WHERE id=?
         ''', (STATUS_PAID, ts, ts, booking_id))
+        
         booking = conn.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
         conn.execute('''
             INSERT INTO admin_actions (booking_id, booking_code, action_type, admin_name, created_at) 
@@ -240,11 +252,23 @@ def approve_booking(booking_id, admin_name="admin"):
         return booking
 
 def reject_booking(booking_id, admin_name="admin"):
+    """رفض الحجز - مع التأكد من أنه ليس مقبولاً"""
     ts = now_str()
     with connect() as conn:
+        # التحقق من حالة الحجز الحالية
+        booking = conn.execute("SELECT status FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+        
+        if not booking:
+            raise Exception("الحجز غير موجود")
+        
+        # منع رفض الحجوزات المقبولة أو الملغية
+        if booking['status'] in ['paid', 'used', 'cancelled']:
+            raise Exception(f"لا يمكن رفض حجز حالته: {booking['status']}")
+        
         conn.execute('''
             UPDATE bookings SET status=?, rejected_at=?, updated_at=? WHERE id=?
         ''', (STATUS_REJECTED, ts, ts, booking_id))
+        
         booking = conn.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
         conn.execute('''
             INSERT INTO admin_actions (booking_id, booking_code, action_type, admin_name, created_at) 
