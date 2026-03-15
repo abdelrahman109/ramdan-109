@@ -97,8 +97,16 @@ def dashboard_stats():
             "SELECT COUNT(*) c FROM bookings WHERE pin_medal=1 AND status IN ('paid','used')"
         ).fetchone()["c"]
         
+        # حساب البروشات المسلمة
+        delivered = conn.execute(
+            "SELECT COUNT(*) c FROM bookings WHERE pin_medal=1 AND status='used'"
+        ).fetchone()["c"]
+        
         # حساب المتبقي للشراء (200 - عدد المدفوعة)
         remaining_for_purchase = pin_stats['available'] - purchased_paid
+        
+        # حساب المتبقي للتسليم (عدد المدفوعة - عدد المسلمة)
+        remaining_for_delivery = purchased_paid - delivered
         
         # إحصائيات تفصيلية للضيوف
         attendees_with_extra = conn.execute(
@@ -117,9 +125,9 @@ def dashboard_stats():
         pin_medal_stats = {
             'available': pin_stats['available'],
             'purchased': purchased_paid,  # تم شراؤها ودفعها فعلاً
-            'delivered': pin_stats['delivered'],
+            'delivered': delivered,  # تم تسليمها
             'remaining_for_purchase': remaining_for_purchase,  # المتبقي للشراء (200 - المدفوعة)
-            'remaining_for_delivery': pin_stats['remaining_for_delivery']
+            'remaining_for_delivery': remaining_for_delivery  # المتبقي للتسليم (المدفوعة - المسلمة)
         }
 
     return {
