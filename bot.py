@@ -550,12 +550,26 @@ def on_photo(message):
             bot.reply_to(message, "أرسل /start للبدء أولًا.", 
                         reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
             return
+        
         booking = get_booking_by_code(session["data"]["booking_code"])
         if not booking:
             bot.reply_to(message, "لم يتم العثور على الحجز.", 
                         reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
             return
-            
+        
+        # التحقق من أن الحجز ليس ملغياً
+        if booking['status'] == 'cancelled':
+            clear_session(message.chat.id)
+            bot.reply_to(
+                message, 
+                "⏰ **تم إلغاء طلبك تلقائياً**\n\n"
+                "لقد مرت 10 دقائق على إنشاء طلبك دون رفع إثبات الدفع.\n\n"
+                "إذا كنت لا تزال ترغب في الحجز، يمكنك البدء من جديد باستخدام /start",
+                parse_mode='Markdown',
+                reply_markup=user_keyboard()
+            )
+            return
+        
         photo = message.photo[-1]
         file_info = bot.get_file(photo.file_id)
         file_data = bot.download_file(file_info.file_path)
@@ -701,7 +715,7 @@ def on_text(message):
         state = session["state"]
         data = session["data"]
         
-        # =============== حالة الدعم (محدثة) ===============
+        # =============== حالة الدعم ===============
         if state == STATE_USER_WAITING_SUPPORT_MESSAGE:
             message_text = message.text.strip()
             
