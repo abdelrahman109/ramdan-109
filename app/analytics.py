@@ -92,6 +92,11 @@ def dashboard_stats():
         # إحصائيات البروش من services
         pin_stats = get_pin_medal_stats()
         
+        # حساب البروشات المدفوعة فقط (وليس المعلقة)
+        purchased_paid = conn.execute(
+            "SELECT COUNT(*) c FROM bookings WHERE pin_medal=1 AND status IN ('paid','used')"
+        ).fetchone()["c"]
+        
         # إحصائيات تفصيلية للضيوف
         attendees_with_extra = conn.execute(
             "SELECT COUNT(*) c FROM bookings WHERE is_attending=1 AND extra_people>0 AND status IN ('paid','used')"
@@ -108,7 +113,7 @@ def dashboard_stats():
         # إحصائيات البروش من settings - محدث
         pin_medal_stats = {
             'available': pin_stats['available'],
-            'purchased': pin_stats['purchased'],
+            'purchased': purchased_paid,  # الآن فقط المدفوعة
             'delivered': pin_stats['delivered'],
             'remaining_for_purchase': pin_stats['remaining_for_purchase'],
             'remaining_for_delivery': pin_stats['remaining_for_delivery']
