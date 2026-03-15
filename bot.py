@@ -29,12 +29,17 @@ STATE_ENTER_PHONE = "enter_phone"
 STATE_WAITING_PAYMENT_PROOF = "waiting_payment_proof"
 STATE_ADMIN_WAITING_BOOKING_CODE = "admin_waiting_booking_code"
 STATE_ADMIN_WAITING_MESSAGE = "admin_waiting_message"
+STATE_USER_WAITING_SUPPORT_MESSAGE = "user_waiting_support_message"  # حالة جديدة للدعم
 
 # =============== لوحات المفاتيح ===============
 def user_keyboard():
-    """كيبورد للمستخدم العادي (بدون أزرار نهائياً)"""
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    # لا نضيف أي أزرار للمستخدم العادي
+    """كيبورد للمستخدم العادي (مع أزرار الحجز والدعم)"""
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    kb.add(
+        types.KeyboardButton("🎫 ابدأ الحجز"),
+        types.KeyboardButton("🔄 إعادة إرسال الحجز"),
+        types.KeyboardButton("📞 تواصل مع الدعم")
+    )
     return kb
 
 def admin_keyboard():
@@ -270,6 +275,63 @@ def admin_buttons_handler(message):
             
     except Exception as e:
         print(f"Error in admin_buttons_handler: {e}")
+        traceback.print_exc()
+        bot.reply_to(message, "❌ حدث خطأ، حاول مرة أخرى")
+
+# =============== معالجات أزرار المستخدم ===============
+@bot.message_handler(func=lambda m: m.text == "🎫 ابدأ الحجز")
+def start_booking(message):
+    """بدء عملية حجز جديدة"""
+    try:
+        clear_session(message.chat.id)
+        set_session(message.chat.id, STATE_SELECT_TICKET, {})
+        bot.send_message(message.chat.id, "اختر نوع التذكرة:", reply_markup=ticket_inline_keyboard())
+    except Exception as e:
+        print(f"Error in start_booking: {e}")
+        traceback.print_exc()
+        bot.reply_to(message, "❌ حدث خطأ، حاول مرة أخرى")
+
+@bot.message_handler(func=lambda m: m.text == "🔄 إعادة إرسال الحجز")
+def resend_booking(message):
+    """إعادة إرسال آخر حجز للمستخدم"""
+    try:
+        # البحث عن آخر حجز للمستخدم
+        with connect() as conn:
+            bookings = conn.execute(
+                "SELECT * FROM bookings WHERE telegram_chat_id=? AND status IN ('paid','used') ORDER BY id DESC LIMIT 1",
+                (message.chat.id,)
+            ).fetchone()
+        
+        if not bookings:
+            bot.reply_to(message, "❌ لا يوجد لديك حجوزات سابقة مدفوعة")
+            return
+        
+        # إرسال التذكرة مرة أخرى
+        if bookings['is_attending']:
+            send_ticket_message(bookings)
+            bot.reply_to(message, "✅ تم إعادة إرسال التذكرة")
+        else:
+            send_thank_you_message(bookings)
+            bot.reply_to(message, "✅ تم إعادة إرسال رسالة المساهمة")
+            
+    except Exception as e:
+        print(f"Error in resend_booking: {e}")
+        traceback.print_exc()
+        bot.reply_to(message, "❌ حدث خطأ، حاول مرة أخرى")
+
+@bot.message_handler(func=lambda m: m.text == "📞 تواصل مع الدعم")
+def support_request(message):
+    """بدء عملية إرسال رسالة للدعم"""
+    try:
+        set_session(message.chat.id, STATE_USER_WAITING_SUPPORT_MESSAGE, {})
+        bot.reply_to(
+            message,
+            "📝 **اكتب رسالتك للدعم**\n\n"
+            "سيتم إرسالها للمسؤولين والرد عليك في أقرب وقت.",
+            parse_mode='Markdown'
+        )
+    except Exception as e:
+        print(f"Error in support_request: {e}")
         traceback.print_exc()
         bot.reply_to(message, "❌ حدث خطأ، حاول مرة أخرى")
 
@@ -626,6 +688,58 @@ def on_text(message):
             return
         state = session["state"]
         data = session["data"]
+        
+        # =============== حالة الدعم ===============
+        if state == STATE_USER_WAITING_SUPPORT_MESSAGE:
+            message_text = message.text.strip()
+            
+            if len(message_text) < 5:
+                bot.reply_to(message, "❌ الرسالة قصيرة جداً. اكتب رسالة أطول (على الأقل 5 أحرف):")
+                return
+            
+            # إرسال الرسالة لجميع الأدمن
+            user_name = message.from_user.first_name
+            user_username = message.from_user.username or "لا يوجد"
+            user_id = message.from_user.id
+            
+            support_msg = (
+                f"📞 **رسالة دعم جديدة**\n\n"
+                f"👤 **المستخدم:** {user_name}\n"
+                f"🆔 **المعرف:** @{user_username}\n"
+                f"🔢 **الآيدي:** {user_id}\n\n"
+                f"📝 **الرسالة:**\n{message_text}\n\n"
+                f"💬 للرد، استخدم أمر /send ثم أدخل كود الحجز (إذا كان لديه حجز)"
+            )
+            
+            # إرسال لكل أدمن
+            sent_count = 0
+            for admin_id in ADMIN_CHAT_IDS:
+                try:
+                    bot.send_message(admin_id, support_msg, parse_mode='Markdown')
+                    sent_count += 1
+                except Exception as e:
+                    print(f"Error sending to admin {admin_id}: {e}")
+            
+            # تسجيل الرسالة في قاعدة البيانات (اختياري)
+            try:
+                with connect() as conn:
+                    conn.execute(
+                        "INSERT INTO message_log (booking_id, booking_code, admin_name, message, sent_at, status) VALUES (?, ?, ?, ?, datetime('now'), ?)",
+                        (0, "SUPPORT", f"user_{user_id}", message_text, "sent_to_admins")
+                    )
+            except:
+                pass
+            
+            bot.reply_to(
+                message,
+                f"✅ **تم إرسال رسالتك إلى الدعم**\n\n"
+                f"سيتم الرد عليك في أقرب وقت ممكن.",
+                parse_mode='Markdown',
+                reply_markup=user_keyboard()
+            )
+            
+            clear_session(message.chat.id)
+            return
         
         # =============== حالات الأدمن ===============
         if state == STATE_ADMIN_WAITING_BOOKING_CODE:
