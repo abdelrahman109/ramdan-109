@@ -14,6 +14,7 @@
     <option value="paid" {% if request.args.get('status') == 'paid' %}selected{% endif %}>مدفوع</option>
     <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض</option>
     <option value="used" {% if request.args.get('status') == 'used' %}selected{% endif %}>تم الدخول</option>
+    <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>ملغي</option>
   </select>
   <select name="ticket_type">
     <option value="">كل الأنواع</option>
@@ -80,12 +81,14 @@
             {% elif b.status == 'rejected' %}error
             {% elif b.status == 'used' %}used
             {% elif b.status == 'pending_proof' %}warn
+            {% elif b.status == 'cancelled' %}error
             {% endif %}">
             {% if b.status == 'paid' %}مدفوع
             {% elif b.status == 'pending_review' %}في الانتظار
             {% elif b.status == 'rejected' %}مرفوض
             {% elif b.status == 'used' %}تم الدخول
             {% elif b.status == 'pending_proof' %}في انتظار الإثبات
+            {% elif b.status == 'cancelled' %}ملغي
             {% else %}{{ b.status }}{% endif %}
           </span>
         </td>
@@ -120,6 +123,34 @@
     <p class="text-center" style="padding: 30px; text-align: center;">لا توجد حجوزات</p>
   {% endif %}
 </div>
+
+<!-- التحديث التلقائي كل دقيقة -->
+<script>
+// تحديث الصفحة كل 60 ثانية
+setTimeout(function() {
+    location.reload();
+}, 60000); // 60000 مللي ثانية = 1 دقيقة
+
+// أو يمكنك استخدام هذا الكود للتحديث بدون إعادة تحميل كامل (اختياري)
+/*
+function refreshData() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newTable = doc.querySelector('table');
+            const oldTable = document.querySelector('table');
+            if (newTable && oldTable) {
+                oldTable.innerHTML = newTable.innerHTML;
+            }
+        })
+        .catch(error => console.log('Error refreshing data:', error));
+}
+// تشغيل التحديث كل 60 ثانية
+setInterval(refreshData, 60000);
+*/
+</script>
 
 <style>
   .nav {
