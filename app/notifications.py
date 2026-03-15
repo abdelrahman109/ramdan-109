@@ -193,15 +193,17 @@ def send_message_to_user(chat_id, message):
         print(f"❌ Error sending message to user {chat_id}: {e}")
         return False
 
-# =============== دالة إشعار الإلغاء التلقائي ===============
+# =============== دالة إشعار الإلغاء التلقائي (محدثة) ===============
 def send_auto_cancel_notification(booking):
     """إرسال إشعار للمستخدم بأن الطلب ألغي تلقائياً"""
     if not _bot:
+        print("❌ Cannot send auto-cancel: no bot")
         return False
     
     try:
         chat_id = booking['telegram_chat_id'] if 'telegram_chat_id' in booking.keys() else None
         if not chat_id:
+            print(f"❌ Cannot send auto-cancel: no chat_id for booking {booking.get('booking_code', 'unknown')}")
             return False
         
         message = (
@@ -212,8 +214,9 @@ def send_auto_cancel_notification(booking):
         )
         
         _bot.send_message(chat_id, message, parse_mode='Markdown')
-        print(f"✅ Auto-cancel notification sent to {booking.get('name', 'unknown')}")
+        print(f"✅ Auto-cancel notification sent to {booking.get('name', 'unknown')} (chat_id: {chat_id})")
         return True
     except Exception as e:
         print(f"❌ Error sending auto-cancel notification: {e}")
+        traceback.print_exc()
         return False
