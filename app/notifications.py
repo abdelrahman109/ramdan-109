@@ -193,6 +193,7 @@ def send_message_to_user(chat_id, message):
         print(f"❌ Error sending message to user {chat_id}: {e}")
         return False
 
+# =============== دالة إشعار الإلغاء التلقائي ===============
 def send_auto_cancel_notification(booking):
     """إرسال إشعار للمستخدم بأن الطلب ألغي تلقائياً"""
     if not _bot:
