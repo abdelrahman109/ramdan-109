@@ -73,12 +73,14 @@
           {% elif booking.status == 'rejected' %}error
           {% elif booking.status == 'used' %}used
           {% elif booking.status == 'pending_proof' %}warn
+          {% elif booking.status == 'cancelled' %}error
           {% endif %}">
           {% if booking.status == 'paid' %}مدفوع
           {% elif booking.status == 'pending_review' %}في انتظار المراجعة
           {% elif booking.status == 'rejected' %}مرفوض
           {% elif booking.status == 'used' %}تم الدخول
           {% elif booking.status == 'pending_proof' %}في انتظار الإثبات
+          {% elif booking.status == 'cancelled' %}ملغي (لم يتم الدفع)
           {% else %}{{ booking.status }}{% endif %}
         </span>
       </div>
@@ -102,12 +104,19 @@
     </div>
   {% endif %}
   
-  <!-- صورة التذكرة -->
+  <!-- صورة التذكرة (نسخة اللي اتبعتت للمستخدم) -->
   {% if booking.ticket_image_path %}
     <div style="margin: 30px 0; text-align: center;">
-      <h3 style="color: #764ba2;">🎟 التذكرة</h3>
-      <img src="{{ url_for('static', filename='../' + booking.ticket_image_path) }}" style="max-width: 400px; border: 3px solid #764ba2; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+      <h3 style="color: #764ba2;">🎟 نسخة التذكرة المرسلة للمستخدم</h3>
+      <img src="{{ url_for('static', filename='../' + booking.ticket_image_path) }}" style="max-width: 500px; border: 3px solid #28a745; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+      <p style="margin-top: 10px; color: #28a745;">✅ تم إرسال هذه التذكرة للمستخدم عند قبول الدفع</p>
     </div>
+  {% else %}
+    {% if booking.is_attending and booking.status == 'paid' %}
+      <div style="margin: 30px 0; text-align: center; padding: 20px; background: #fff3cd; border-radius: 10px;">
+        <p style="color: #856404;">⚠️ لم يتم إنشاء صورة التذكرة بعد. قد تحتاج إلى إعادة إنشائها.</p>
+      </div>
+    {% endif %}
   {% endif %}
   
   <!-- الإجراءات الأساسية -->
@@ -130,7 +139,7 @@
     {% endif %}
   </div>
   
-  <!-- =============== قسم سجل الرسائل (جديد) =============== -->
+  <!-- =============== قسم سجل الرسائل =============== -->
   <div style="margin-top: 40px; border-top: 2px solid #17a2b8; padding-top: 30px;">
     <h3 style="color: #17a2b8; margin-bottom: 20px;">📨 سجل الرسائل المرسلة</h3>
     
@@ -174,7 +183,7 @@
     
     <div style="display: flex; gap: 15px; flex-wrap: wrap;">
       <!-- زر إلغاء الحجز -->
-      {% if booking.status != 'rejected' %}
+      {% if booking.status != 'rejected' and booking.status != 'cancelled' %}
       <form method="post" action="{{ url_for('admin_reject_booking', booking_id=booking.id) }}" style="display:inline;" 
             onsubmit="return confirm('⚠️ تحذير: هل أنت متأكد من إلغاء هذا الحجز؟\n\n• المستخدم سيتلقى إشعار بالإلغاء\n• حالة الحجز ستصبح مرفوض')">
         <button type="submit" class="btn btn-cancel">⚠️ إلغاء الحجز</button>
