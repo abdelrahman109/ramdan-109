@@ -74,9 +74,15 @@ def pin_medal_keyboard():
     # التحقق من وجود بروشات متاحة للشراء
     stats = get_pin_medal_stats()
     
-    if stats['remaining_for_purchase'] > 0:
+    # حساب البروشات المدفوعة فقط للعرض
+    with connect() as conn:
+        purchased_paid = conn.execute("SELECT COUNT(*) as c FROM bookings WHERE pin_medal=1 AND status IN ('paid','used')").fetchone()["c"]
+    
+    remaining_for_purchase = stats['available'] - purchased_paid
+    
+    if remaining_for_purchase > 0:
         kb.add(
-            types.InlineKeyboardButton(f"✅ نعم (+{PRICE_PIN_MEDAL} جنيه) - متبقي للشراء {stats['remaining_for_purchase']}", callback_data="pin:yes"),
+            types.InlineKeyboardButton(f"✅ نعم (+{PRICE_PIN_MEDAL} جنيه) - متبقي للشراء {remaining_for_purchase}", callback_data="pin:yes"),
             types.InlineKeyboardButton("❌ لا", callback_data="pin:no"),
         )
     else:
@@ -110,7 +116,13 @@ def payment_info_text():
 
 def ticket_types_text():
     stats = get_pin_medal_stats()
-    pin_info = f" (متبقي للشراء: {stats['remaining_for_purchase']})" if stats['remaining_for_purchase'] > 0 else " (نفذت الكمية)"
+    
+    # حساب البروشات المدفوعة فقط للعرض
+    with connect() as conn:
+        purchased_paid = conn.execute("SELECT COUNT(*) as c FROM bookings WHERE pin_medal=1 AND status IN ('paid','used')").fetchone()["c"]
+    
+    remaining_for_purchase = stats['available'] - purchased_paid
+    pin_info = f" (متبقي للشراء: {remaining_for_purchase})" if remaining_for_purchase > 0 else " (نفذت الكمية)"
     
     return (
         "أنواع التذاكر:\n\n"
@@ -202,6 +214,9 @@ def admin_send_command(message):
 def admin_buttons_handler(message):
     """معالج أزرار الأدمن"""
     try:
+        # مسح أي جلسة سابقة للأدمن قبل تنفيذ الأمر
+        clear_session(message.chat.id)
+        
         # التحقق أن المرسل هو أدمن
         if message.from_user.id not in ADMIN_CHAT_IDS:
             bot.reply_to(message, "⛔ هذا الأمر مخصص للمسؤولين فقط")
@@ -227,17 +242,24 @@ def admin_buttons_handler(message):
             # عرض إحصائيات البروشات مباشرة (بدون طلب كود)
             stats = get_pin_medal_stats()
             
-            # جلب إجمالي البروشات المشتراة من قاعدة البيانات للتأكد
+            # جلب البروشات المدفوعة فقط من قاعدة البيانات
             with connect() as conn:
-                total_purchased = conn.execute("SELECT COUNT(*) as c FROM bookings WHERE pin_medal=1 AND status IN ('paid','used','pending_review')").fetchone()["c"]
+                purchased_paid = conn.execute("SELECT COUNT(*) as c FROM bookings WHERE pin_medal=1 AND status IN ('paid','used')").fetchone()["c"]
+                delivered = conn.execute("SELECT COUNT(*) as c FROM bookings WHERE pin_medal=1 AND status='used'").fetchone()["c"]
+            
+            # حساب المتبقي للشراء (200 - المدفوعة)
+            remaining_for_purchase = stats['available'] - purchased_paid
+            
+            # حساب المتبقي للتسليم (المدفوعة - المسلمة)
+            remaining_for_delivery = purchased_paid - delivered
             
             text = (
                 f"🎖️ **إحصائيات البروشات:**\n\n"
                 f"• إجمالي البروشات المتاحة: {stats['available']}\n"
-                f"• تم شراؤها: {total_purchased}\n"
-                f"• تم تسليمها: {stats['delivered']}\n"
-                f"• متبقي للشراء: {stats['remaining_for_purchase']}\n"
-                f"• متبقي للتسليم: {stats['remaining_for_delivery']}"
+                f"• تم شراؤها ودفعها: {purchased_paid}\n"
+                f"• تم تسليمها: {delivered}\n"
+                f"• متبقي للشراء: {remaining_for_purchase}\n"
+                f"• متبقي للتسليم: {remaining_for_delivery}"
             )
             bot.reply_to(message, text, parse_mode='Markdown')
             
@@ -271,7 +293,13 @@ def on_ticket(c):
             })
             
             stats = get_pin_medal_stats()
-            pin_info = f" (متبقي للشراء: {stats['remaining_for_purchase']})" if stats['remaining_for_purchase'] > 0 else " (نفذت الكمية)"
+            
+            # حساب البروشات المدفوعة فقط للعرض
+            with connect() as conn:
+                purchased_paid = conn.execute("SELECT COUNT(*) as c FROM bookings WHERE pin_medal=1 AND status IN ('paid','used')").fetchone()["c"]
+            
+            remaining_for_purchase = stats['available'] - purchased_paid
+            pin_info = f" (متبقي للشراء: {remaining_for_purchase})" if remaining_for_purchase > 0 else " (نفذت الكمية)"
             
             price_info = (
                 f"🎫 **حضور الحفل**\n\n"
@@ -687,59 +715,4 @@ def on_text(message):
                     return
                 
                 data["amount"] = amount
-                set_session(message.chat.id, STATE_ENTER_NAME, data)
-                bot.reply_to(message, f"❤️ تم اختيار مساهمة بقيمة **{amount} جنيه**\n\nالآن اكتب الاسم الكامل (رباعي):", 
-                            reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
-                return
-                
-            except ValueError:
-                bot.reply_to(message, "❌ قيمة غير صالحة. اكتب رقماً صحيحاً (مثلاً: 250 أو 750):")
-                return
-        
-        elif state == STATE_ENTER_NAME:
-            if not message.text or len(message.text.strip()) < 3:
-                bot.reply_to(message, "الاسم قصير جداً، اكتب الاسم الكامل (رباعي)", 
-                            reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
-                return
-            data["name"] = message.text.strip()
-            set_session(message.chat.id, STATE_ENTER_PHONE, data)
-            bot.reply_to(message, "اكتب رقم الموبايل", 
-                        reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
-            return
-            
-        elif state == STATE_ENTER_PHONE:
-            phone = normalize_phone(message.text)
-            if not is_valid_phone(phone):
-                bot.reply_to(message, "رقم الهاتف غير صحيح. اكتب رقمًا مصريًا صحيحًا يبدأ بـ 01", 
-                            reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
-                return
-            data["phone"] = phone
-            set_session(message.chat.id, "select_payment_method", data)
-            bot.send_message(message.chat.id, "اختر طريقة الدفع المناسبة", reply_markup=payment_method_keyboard())
-            return
-            
-        bot.reply_to(message, "استخدم /start للبدء", 
-                    reply_markup=admin_keyboard() if message.from_user.id in ADMIN_CHAT_IDS else user_keyboard())
-    except Exception as e:
-        print(f"Error in on_text: {e}")
-        traceback.print_exc()
-        bot.reply_to(message, "حدث خطأ، حاول مرة أخرى")
-
-# =============== إغلاق اتصال قاعدة البيانات ===============
-import atexit
-from app.db import close_connection
-
-atexit.register(close_connection)
-
-# =============== تشغيل البوت ===============
-if __name__ == "__main__":
-    print("✅ Bot is running...")
-    while True:
-        try:
-            bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
-        except Exception as e:
-            print(f"❌ Bot crashed: {e}")
-            traceback.print_exc()
-            print("🔄 Restarting bot in 5 seconds...")
-            import time
-            time.sleep(5)
+                set_session(message.chat.id, STATE_
