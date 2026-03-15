@@ -140,7 +140,6 @@ def send_ticket_message(booking):
             with open(ticket_image_path, "rb") as f:
                 _bot.send_photo(chat_id, f)
         
-        # تم تعديل هذا السطر - إزالة .get()
         name = booking['name'] if 'name' in booking.keys() else 'unknown'
         print(f"✅ Ticket sent to {name}")
         
@@ -180,19 +179,40 @@ def send_broadcast(chat_ids, message):
             pass
     return count
 
-# =============== دالة إرسال رسالة للمستخدم (معدلة لدعم العربية) ===============
 def send_message_to_user(chat_id, message):
-    """إرسال رسالة مباشرة لمستخدم (مع دعم العربية)"""
+    """إرسال رسالة مباشرة لمستخدم"""
     if not _bot:
         return False
     
     try:
-        # إضافة حرف تحكم RTL في بداية الرسالة
         rtl_message = "\u202B" + message
-        
         _bot.send_message(chat_id, rtl_message, parse_mode='Markdown')
         print(f"✅ Message sent to user {chat_id}")
         return True
     except Exception as e:
         print(f"❌ Error sending message to user {chat_id}: {e}")
+        return False
+
+def send_auto_cancel_notification(booking):
+    """إرسال إشعار للمستخدم بأن الطلب ألغي تلقائياً"""
+    if not _bot:
+        return False
+    
+    try:
+        chat_id = booking['telegram_chat_id'] if 'telegram_chat_id' in booking.keys() else None
+        if not chat_id:
+            return False
+        
+        message = (
+            "⏰ **تم إلغاء طلبك تلقائياً**\n\n"
+            "لقد مرت 10 دقائق على إنشاء طلبك دون رفع صورة إثبات الدفع.\n\n"
+            "إذا كنت لا تزال ترغب في الحجز، يمكنك البدء من جديد باستخدام /start\n\n"
+            "نعتذر عن أي إزعاج."
+        )
+        
+        _bot.send_message(chat_id, message, parse_mode='Markdown')
+        print(f"✅ Auto-cancel notification sent to {booking.get('name', 'unknown')}")
+        return True
+    except Exception as e:
+        print(f"❌ Error sending auto-cancel notification: {e}")
         return False
