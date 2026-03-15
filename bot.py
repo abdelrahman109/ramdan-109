@@ -3,7 +3,7 @@ import telebot
 import traceback
 from telebot import types
 
-from app.config import TELEGRAM_BOT_TOKEN, EVENT_NAME, EVENT_TIME, EVENT_PRE_ARRIVAL_TEXT, EVENT_LOCATION, EVENT_MAP, ACCOUNT_NAME_AR, ACCOUNT_NAME_EN, INSTAPAY_PHONE, WALLET_PHONE, INSTAPAY_LINK, ADMIN_CHAT_IDS
+from app.config import TELEGRAM_BOT_TOKEN, EVENT_NAME, EVENT_TIME, EVENT_PRE_ARRIVAL_TEXT, EVENT_LOCATION, EVENT_MAP, ACCOUNT_NAME_AR, ACCOUNT_NAME_EN, INSTAPAY_PHONE, WALLET_PHONE, INSTAPAY_LINK, ADMIN_CHAT_IDS, BASE_URL
 from app.constants import TICKET_FULL, TICKET_CONTRIBUTION, PRICE_BASE_ATTENDANCE, PRICE_EXTRA_MEAL, PRICE_PIN_MEDAL, PAY_INSTAPAY, PAY_WALLET
 from app.db import init_db, connect
 from app.utils import normalize_phone, is_valid_phone
@@ -29,7 +29,7 @@ STATE_ENTER_PHONE = "enter_phone"
 STATE_WAITING_PAYMENT_PROOF = "waiting_payment_proof"
 STATE_ADMIN_WAITING_BOOKING_CODE = "admin_waiting_booking_code"
 STATE_ADMIN_WAITING_MESSAGE = "admin_waiting_message"
-STATE_USER_WAITING_SUPPORT_MESSAGE = "user_waiting_support_message"  # حالة جديدة للدعم
+STATE_USER_WAITING_SUPPORT_MESSAGE = "user_waiting_support_message"
 
 # =============== لوحات المفاتيح ===============
 def user_keyboard():
@@ -349,7 +349,7 @@ def on_ticket(c):
             # حضور
             set_session(c.message.chat.id, STATE_ENTER_EXTRA_PEOPLE, {
                 "ticket_type": ticket_type,
-                "base_amount": 150,  # مساهمة وجبة أسر الشهداء
+                "base_amount": 150,
                 "extra_people": 0,
                 "pin_medal": False
             })
@@ -689,7 +689,7 @@ def on_text(message):
         state = session["state"]
         data = session["data"]
         
-        # =============== حالة الدعم ===============
+        # =============== حالة الدعم (محدثة) ===============
         if state == STATE_USER_WAITING_SUPPORT_MESSAGE:
             message_text = message.text.strip()
             
