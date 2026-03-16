@@ -281,10 +281,11 @@ def reject_booking(booking_id, admin_name="admin"):
         return booking
 
 def generate_ticket_for_booking(booking):
+    """إنشاء تذكرة للحجز"""
     token = booking["qr_token"] or generate_token()
     qpath = qr_path(booking["booking_code"])
     qrcode.make(token).save(qpath)
-    tpath = ticket_path(booking["booking_code"])
+    tpath = ticket_path(booking["booking_code"])  # المسار الجديد من tickets.py
     create_ticket_image(booking, qpath, tpath)
     
     with connect() as conn:
