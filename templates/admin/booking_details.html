@@ -104,11 +104,13 @@
     </div>
   {% endif %}
   
-  <!-- صورة التذكرة (نسخة اللي اتبعتت للمستخدم) -->
+  <!-- صورة التذكرة (نسخة اللي اتبعتت للمستخدم) - محدثة -->
   {% if booking.ticket_image_path %}
     <div style="margin: 30px 0; text-align: center;">
       <h3 style="color: #764ba2;">🎟 نسخة التذكرة المرسلة للمستخدم</h3>
-      <img src="{{ url_for('static', filename='../' + booking.ticket_image_path) }}" style="max-width: 500px; border: 3px solid #28a745; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+      <!-- استخراج اسم الملف فقط من المسار -->
+      {% set filename = booking.ticket_image_path.split('/')[-1] %}
+      <img src="{{ url_for('static', filename='generated/tickets/' + filename) }}" style="max-width: 500px; border: 3px solid #28a745; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
       <p style="margin-top: 10px; color: #28a745;">✅ تم إرسال هذه التذكرة للمستخدم عند قبول الدفع</p>
     </div>
   {% else %}
