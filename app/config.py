@@ -24,5 +24,5 @@ INSTAPAY_LINK = os.getenv("INSTAPAY_LINK", "")
 
 DB_PATH = os.getenv("DB_PATH", "instance/tickets.db")
 UPLOADS_DIR = os.getenv("UPLOADS_DIR", "uploads/payment_proofs")
-GENERATED_TICKETS_DIR = os.getenv("GENERATED_TICKETS_DIR", "generated/tickets")
+GENERATED_TICKETS_DIR = os.getenv("GENERATED_TICKETS_DIR", "static/generated/tickets")
 GENERATED_QR_DIR = os.getenv("GENERATED_QR_DIR", "generated/qr")
