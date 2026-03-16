@@ -281,11 +281,15 @@ def reject_booking(booking_id, admin_name="admin"):
         return booking
 
 def generate_ticket_for_booking(booking):
-    """إنشاء تذكرة للحجز"""
     token = booking["qr_token"] or generate_token()
     qpath = qr_path(booking["booking_code"])
     qrcode.make(token).save(qpath)
-    tpath = ticket_path(booking["booking_code"])  # المسار الجديد من tickets.py
+    tpath = ticket_path(booking["booking_code"])  # هذا يستدعي storage.py
+    
+    print(f"🔍 QR Path: {qpath}")
+    print(f"🔍 Ticket Path: {tpath}")
+    print(f"🔍 File exists? {os.path.exists(tpath)}")
+    
     create_ticket_image(booking, qpath, tpath)
     
     with connect() as conn:
