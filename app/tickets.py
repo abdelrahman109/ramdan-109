@@ -34,6 +34,10 @@ def _font(size: int, bold=True):
     except Exception:
         return ImageFont.load_default()
 
+def ticket_path(booking_code):
+    """توليد مسار حفظ صورة التذكرة داخل مجلد static"""
+    return str(Path("static") / "generated" / "tickets" / f"{booking_code}.png")
+
 def create_ticket_image(booking, qr_image_path, out_path):
     """إنشاء صورة التذكرة مع توسيط كل النصوص بخط Arial Bold"""
     
@@ -92,7 +96,6 @@ def create_ticket_image(booking, qr_image_path, out_path):
         draw.text((600, y), f"مساهمة وجبة أسر الشهداء: 150 جنيه", fill="black", font=detail_font, anchor="mt")
         y += 50
         
-        # تفاصيل التذكرة في سطرين منظمين
         if extra_people > 0:
             details_line1 = f"أفراد إضافيين: {extra_people} × {PRICE_EXTRA_MEAL} = {extra_people * PRICE_EXTRA_MEAL} جنيه"
             draw.text((600, y), details_line1, fill="black", font=detail_font, anchor="mt")
