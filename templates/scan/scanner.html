@@ -465,28 +465,28 @@
         }
     }
     
-    // Refresh pin medal stats
-    async function refreshPinStats() {
-        try {
-            let response = await fetch('/api/pin-stats');
-            let data = await response.json();
-            
-            console.log("🎖️ Pin stats:", data);
-            
-            if (document.getElementById('pinPurchased')) {
-                document.getElementById('pinPurchased').innerText = data.purchased || 0;
-            }
-            if (document.getElementById('pinDelivered')) {
-                document.getElementById('pinDelivered').innerText = data.delivered || 0;
-            }
-            if (document.getElementById('pinRemaining')) {
-                document.getElementById('pinRemaining').innerText = data.remaining || 0;
-            }
-            
-        } catch (error) {
-            console.log('❌ Error refreshing pin stats:', error);
+   // Refresh pin medal stats
+async function refreshPinStats() {
+    try {
+        let response = await fetch('/api/pin-stats');
+        let data = await response.json();
+        
+        console.log("🎖️ Pin stats from API:", data);
+        
+        if (document.getElementById('pinPurchased')) {
+            document.getElementById('pinPurchased').innerText = data.purchased || 0;
         }
+        if (document.getElementById('pinDelivered')) {
+            document.getElementById('pinDelivered').innerText = data.delivered || 0;
+        }
+        if (document.getElementById('pinRemaining')) {
+            document.getElementById('pinRemaining').innerText = data.remaining_for_purchase || 0;
+        }
+        
+    } catch (error) {
+        console.log('❌ Error refreshing pin stats:', error);
     }
+}
     
     // الأصوات المختلفة للنتائج
     function playSound(type) {
