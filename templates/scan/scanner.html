@@ -288,45 +288,57 @@
 <div class="scanner-container">
     <!-- Stats Dashboard -->
     <div class="stats-grid" id="statsDashboard">
+        <!-- إجمالي الحضور -->
         <div class="stat-card primary">
             <div class="stat-icon">🎟</div>
             <div class="stat-label">إجمالي الحضور</div>
             <div class="stat-value" id="totalAttendees">0</div>
         </div>
+        
+        <!-- تم الدخول -->
         <div class="stat-card success">
             <div class="stat-icon">✅</div>
             <div class="stat-label">تم الدخول</div>
             <div class="stat-value" id="checkedIn">0</div>
         </div>
+        
+        <!-- المتبقي -->
         <div class="stat-card warning">
             <div class="stat-icon">⏳</div>
             <div class="stat-label">المتبقي</div>
             <div class="stat-value" id="remaining">0</div>
         </div>
+        
+        <!-- نسبة الدخول -->
         <div class="stat-card">
             <div class="stat-icon">📊</div>
             <div class="stat-label">نسبة الدخول</div>
             <div class="stat-value" id="percentage">0%</div>
         </div>
-        <!-- إحصائيات الضيوف الإجمالية -->
+        
+        <!-- إجمالي الضيوف (أساسي + إضافيين) -->
         <div class="stat-card primary" style="grid-column: span 2;">
             <div class="stat-icon">👥</div>
-            <div class="stat-label">إجمالي الضيوف</div>
+            <div class="stat-label">إجمالي الضيوف (مع الإضافيين)</div>
             <div class="stat-value" id="totalGuests">0</div>
-            <div class="stat-sub">(أساسي + إضافيين)</div>
         </div>
+        
         <!-- إحصائيات البروش -->
         <div class="stat-card pin" style="grid-column: span 2;">
             <div class="stat-icon">🎖️</div>
             <div class="stat-label">بروش + ميدالية</div>
             <div style="display: flex; justify-content: space-around; margin-top: 5px;">
                 <div>
+                    <div class="stat-value" id="pinPurchased">0</div>
+                    <div class="stat-sub">تم شراؤها</div>
+                </div>
+                <div>
                     <div class="stat-value" id="pinDelivered">0</div>
-                    <div class="stat-sub">تم التسليم</div>
+                    <div class="stat-sub">تم تسليمها</div>
                 </div>
                 <div>
                     <div class="stat-value" id="pinRemaining">200</div>
-                    <div class="stat-sub">متبقي</div>
+                    <div class="stat-sub">متبقي للشراء</div>
                 </div>
             </div>
         </div>
@@ -389,8 +401,8 @@
     let lastResult = null;
     let isScanning = false;
     
-    // Auto-refresh stats
-    setInterval(refreshAllStats, 30000);
+    // Auto-refresh stats every 10 seconds
+    setInterval(refreshAllStats, 10000);
     
     // Load initial data and start scanner automatically
     document.addEventListener('DOMContentLoaded', function() {
@@ -402,41 +414,54 @@
     
     // Refresh all statistics
     async function refreshAllStats() {
-        await refreshStats();
+        console.log("🔄 Refreshing all stats...");
+        await refreshBasicStats();
         await refreshGuestStats();
         await refreshPinStats();
     }
     
-    // Refresh basic stats
-    async function refreshStats() {
+    // Refresh basic stats (total, checked_in, remaining, percentage)
+    async function refreshBasicStats() {
         try {
             let response = await fetch('/api/stats');
             let data = await response.json();
             
+            console.log("📊 Basic stats:", data);
+            
+            // إجمالي الحضور المتوقع (paid + used)
             document.getElementById('totalAttendees').innerText = data.total || 0;
+            
+            // تم الدخول فعلاً (used)
             document.getElementById('checkedIn').innerText = data.checked_in || 0;
             
-            let remaining = (data.total || 0) - (data.checked_in || 0);
+            // المتبقي = السعة الكلية (400) - إجمالي الحضور
+            let remaining = 400 - (data.total || 0);
             document.getElementById('remaining').innerText = remaining < 0 ? 0 : remaining;
             
+            // نسبة الدخول = (تم الدخول / إجمالي الحضور) * 100
             let percentage = data.total > 0 ? Math.round((data.checked_in / data.total) * 100) : 0;
             document.getElementById('percentage').innerText = percentage + '%';
             
         } catch (error) {
-            console.log('Error refreshing stats:', error);
+            console.log('❌ Error refreshing basic stats:', error);
         }
     }
     
-    // Refresh guest stats
+    // Refresh guest stats (total guests including extra people)
     async function refreshGuestStats() {
         try {
             let response = await fetch('/api/guest-stats');
             let data = await response.json();
             
-            document.getElementById('totalGuests').innerText = data.total_guests || 0;
+            console.log("👥 Guest stats:", data);
+            
+            // إجمالي الضيوف (أساسي + إضافيين)
+            if (document.getElementById('totalGuests')) {
+                document.getElementById('totalGuests').innerText = data.total_guests || 0;
+            }
             
         } catch (error) {
-            console.log('Error refreshing guest stats:', error);
+            console.log('❌ Error refreshing guest stats:', error);
         }
     }
     
@@ -446,11 +471,20 @@
             let response = await fetch('/api/pin-stats');
             let data = await response.json();
             
-            document.getElementById('pinDelivered').innerText = data.delivered || 0;
-            document.getElementById('pinRemaining').innerText = data.remaining || 0;
+            console.log("🎖️ Pin stats:", data);
+            
+            if (document.getElementById('pinPurchased')) {
+                document.getElementById('pinPurchased').innerText = data.purchased || 0;
+            }
+            if (document.getElementById('pinDelivered')) {
+                document.getElementById('pinDelivered').innerText = data.delivered || 0;
+            }
+            if (document.getElementById('pinRemaining')) {
+                document.getElementById('pinRemaining').innerText = data.remaining || 0;
+            }
             
         } catch (error) {
-            console.log('Error refreshing pin stats:', error);
+            console.log('❌ Error refreshing pin stats:', error);
         }
     }
     
